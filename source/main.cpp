@@ -3,8 +3,6 @@
 
 #include "HEaaN/HEaaN.hpp"
 
-// changes made
-
 inline double randNum() {
     static std::default_random_engine gen{std::random_device()()};
     std::uniform_real_distribution<double> dist(-1.0L, 1.0L);

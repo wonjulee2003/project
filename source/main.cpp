@@ -1,13 +1,13 @@
 #include <iostream>
 #include <random>
+#include <vector>
+#include <tuple>
+#include <sstream>
 
 #include "HEaaN/HEaaN.hpp"
-
-inline double randNum() {
-    static std::default_random_engine gen{std::random_device()()};
-    std::uniform_real_distribution<double> dist(-1.0L, 1.0L);
-    return dist(gen);
-}
+#include "client.hpp"
+#include "server.hpp"
+#include "utils.hpp"
 
 inline std::string presetNamer(const HEaaN::ParameterPreset preset) {
     switch (preset) {
@@ -45,15 +45,51 @@ inline std::string presetNamer(const HEaaN::ParameterPreset preset) {
         return "FGd";
     case HEaaN::ParameterPreset::SGd0:
         return "SGd0";
+    case HEaaN::ParameterPreset::FX:
+        return "FX";
     default:
         throw std::invalid_argument("Not supported parameter");
     }
 }
+// Client Setup
+//  ↓
+// Encode Inputs (CW Encoding)
+//  ↓
+// Batch & Encrypt
+//  ↓
+// Send Ciphertexts →
+//                      Server Setup
+//                       ↓
+//            Load Parameters & Keys
+//                       ↓
+//         Encode Server Inputs (CW)
+//                       ↓
+//          Homomorphic Computation
+//                       ↓
+//              Send Ciphertexts ←
+//  ↓
+// Decrypt & Decode
+
 
 int main() {
-    std::cout << randNum() << std::endl;
-    HEaaN::ParameterPreset preset = HEaaN::ParameterPreset::SS7;
-    HEaaN::Context context = makeContext(preset);
-    std::cout << "Parameter : " << presetNamer(preset) << std::endl
-              << std::endl;
+    std::cout << "main project" << std::endl;
+    Client client("FGb");
+    std::cout << "Parameter : " << presetNamer(client.preset) << std::endl;
+    std::cout << getLogFullSlots(client.context) << std::endl;
+
+    int server_bin_size = 10;
+    // for our deterministic hashing(assignment) scheme, effective_bitLength > 15
+    // 2^15 slots in FGb parameters
+    int effective_bitLength = 16; 
+    // large hamming weight parameters causes depletion due to extensive multiplication.
+    int hw = 3;
+    Params params(server_bin_size, effective_bitLength, hw);
+    
+    auto [context_string, keypack_string, data_stream, sk_string] = client.client_preprocessing(params);
+    std::cout << context_string << ", " << keypack_string << std::endl;
+
+    Server server(context_string, keypack_string, std::move(data_stream), sk_string);
+    std::stringstream final_stream = std::move(server.server_computation(params));
+
+    client.load_decrypt(final_stream);
 }

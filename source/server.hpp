@@ -8,6 +8,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <unordered_set>
+
 
 #include "HEaaN/HEaaN.hpp"
 #include "utils.hpp"
@@ -35,6 +37,8 @@ public:
     void send_result(HEaaN::Ciphertext &ctxt);
     std::stringstream server_computation(Params &params);
     void compute_sum(HEaaN::Ciphertext &ctxt);
+
+    std::stringstream serverMultipleLabelComp(Params &params);
 };
 
 #endif

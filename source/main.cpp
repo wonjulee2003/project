@@ -71,7 +71,7 @@ inline std::string presetNamer(const HEaaN::ParameterPreset preset) {
 // Decrypt & Decode
 
 
-int main() {
+int main(void) {
     std::cout << "main project" << std::endl;
     Client client("FGb");
     std::cout << "Parameter : " << presetNamer(client.preset) << std::endl;
@@ -86,10 +86,15 @@ int main() {
     Params params(server_bin_size, effective_bitLength, hw);
     
     auto [context_string, keypack_string, data_stream, sk_string] = client.client_preprocessing(params);
+    
     std::cout << context_string << ", " << keypack_string << std::endl;
 
     Server server(context_string, keypack_string, std::move(data_stream), sk_string);
-    std::stringstream final_stream = std::move(server.server_computation(params));
+    // std::stringstream final_stream = std::move(server.server_computation(params));
+
+    std::stringstream final_stream = std::move(server.serverMultipleLabelComp(params));
 
     client.load_decrypt(final_stream);
+
+    return 0;
 }

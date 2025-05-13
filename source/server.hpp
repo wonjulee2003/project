@@ -7,11 +7,13 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <string>
 
 #include <unordered_set>
 
 
 #include "HEaaN/HEaaN.hpp"
+#include "HEaaN-math/HEaaN-math.hpp"
 #include "utils.hpp"
 
 class Server {

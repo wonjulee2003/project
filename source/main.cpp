@@ -5,6 +5,8 @@
 #include <sstream>
 
 #include "HEaaN/HEaaN.hpp"
+#include "HEaaN-math/HEaaN-math.hpp"
+
 #include "client.hpp"
 #include "server.hpp"
 #include "utils.hpp"

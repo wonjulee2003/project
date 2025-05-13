@@ -2,6 +2,7 @@
 
 using namespace std;
 using namespace HEaaN;
+using namespace HEaaN::Math;
 
 int Server::server_hash(int mu, int bin_index, int bitLength){
     return ((bin_index+1)+mu) % (1 << bitLength);
@@ -237,7 +238,7 @@ stringstream Server::serverMultipleLabelComp(Params &params){
         else label1[elt] = "Chinese";
     }
 
-    for(int bin_index; bin_index < (1<<log_slots); bin_index++){
+    for(int bin_index = 0; bin_index < (1<<log_slots); bin_index++){
         if(label1[bin_index].compare("Korean") == 0) {
             mask[bin_index].real(1.0);
             mask[bin_index].imag(0.0);
@@ -281,6 +282,8 @@ stringstream Server::serverMultipleLabelComp(Params &params){
 
     Message zero_msg(log_slots); 
     fillReal(zero_msg, 0.0);
+
+    Ciphertext ctxt_test(context);
 
     // beginning of main loop
     for (int i=0; i<server_bin_size; i++) {
@@ -330,6 +333,14 @@ stringstream Server::serverMultipleLabelComp(Params &params){
         // add Chebyshev Basis Evaluation Function HERE
         // input : ciphertext ctxt, poly coefficients (potentially using a lookup table for small domains)
         // output : ciphertext ctxt (or other ciphertext storage)
+
+        HEaaN::Math::ChebyshevCoefficients chebyshev_coef_deg_3(
+            {-1.5, 2.75, -1.5, 0.25}, HEaaN::Math::PolynomialBasis::basic);
+
+        evaluator.add(HEaaN::Math::evaluateChebyshevExpansion(evaluator, ctxt, 
+            chebyshev_coef_deg_3, 1), 0, ctxt_test);
+
+        
 
         // Alternative: Direct Product Evaluation
         Ciphertext temp(context);

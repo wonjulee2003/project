@@ -13,8 +13,9 @@
 
 
 #include "HEaaN/HEaaN.hpp"
-#include "HEaaN-math/HEaaN-math.hpp"
+// #include "HEaaN-math/HEaaN-math.hpp"
 #include "utils.hpp"
+#include "PolynomialEvaluator.hpp"
 
 class Server {
 public:

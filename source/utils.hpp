@@ -11,6 +11,7 @@
 #include "HEaaN/HEaaN.hpp"
 
 using namespace std;
+using namespace HEaaN;
 
 int comb(int n, int r);
 vector<int> PerfectMapping(int input, int bitLength, int hammingWeight);
@@ -30,5 +31,9 @@ public:
     
     Params(int server_bin_size, int effective_bitLength, int hw);
 };
+
+void approxInverseNewton(const HomEvaluator &eval,
+                         const Ciphertext &ctxt, Ciphertext &ctxt_out,
+                         Real initial, u64 num_iter);
 
 #endif

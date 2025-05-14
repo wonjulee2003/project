@@ -2,6 +2,7 @@
 
 
 using namespace std;
+using namespace HEaaN;
 
 int comb(int n, int k) {
     if (k > n) {
@@ -99,3 +100,36 @@ Params::Params(int server_bin_size, int effective_bitLength, int hw)
         }
         // bitLength = effective_bitLength + log_modulus_degree
      }
+
+void approxInverseNewton(const HomEvaluator &eval,
+                         const Ciphertext &ctxt, Ciphertext &ctxt_out,
+                         Real initial, u64 num_iter) {
+    const u64 one_iter_cost{1};
+
+    Ciphertext ctxt_x(eval.getContext()), ctxt_y(eval.getContext());
+    Ciphertext ctxt_z(eval.getContext()), ctxt_tmp(eval.getContext());
+
+    ctxt_x = ctxt;
+
+    // y_0 = initial
+    // z_0 = x * y_0
+    // y_1 = y_0 * (2 - z_0)
+    eval.mult(ctxt_x, initial, ctxt_z);
+    eval.negate(ctxt_z, ctxt_tmp);
+    eval.add(ctxt_tmp, 2.0, ctxt_tmp); // tmp = 2 - z_0
+    eval.mult(ctxt_tmp, initial, ctxt_y);
+
+    // for n > 0
+    // z_n = x * y_n
+    //     = z_{n-1} * (2 - z_{n-1})
+    // y_{n+1} = y_n * (2 - z_n)
+    for (u64 iter = 1; iter < num_iter; iter++) {
+        eval.mult(ctxt_z, ctxt_tmp, ctxt_z);
+
+        eval.negate(ctxt_z, ctxt_tmp); // tmp = 2 - z_n
+        eval.add(ctxt_tmp, 2.0, ctxt_tmp);
+        eval.mult(ctxt_y, ctxt_tmp, ctxt_y);
+    }
+
+    ctxt_out = ctxt_y;
+}

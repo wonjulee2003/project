@@ -2,7 +2,7 @@
 
 using namespace std;
 using namespace HEaaN;
-using namespace HEaaN::Math;
+// using namespace HEaaN::Math;
 
 int Server::server_hash(int mu, int bin_index, int bitLength){
     return ((bin_index+1)+mu) % (1 << bitLength);
@@ -279,6 +279,7 @@ stringstream Server::serverMultipleLabelComp(Params &params){
 
     // store final results here
     vector<Ciphertext> intersection;
+    vector<Ciphertext> intersection_cheby;
 
     Message zero_msg(log_slots); 
     fillReal(zero_msg, 0.0);
@@ -334,15 +335,21 @@ stringstream Server::serverMultipleLabelComp(Params &params){
         // input : ciphertext ctxt, poly coefficients (potentially using a lookup table for small domains)
         // output : ciphertext ctxt (or other ciphertext storage)
 
-        HEaaN::Math::ChebyshevCoefficients chebyshev_coef_deg_3(
-            {-1.5, 2.75, -1.5, 0.25}, HEaaN::Math::PolynomialBasis::basic);
 
-        evaluator.add(HEaaN::Math::evaluateChebyshevExpansion(evaluator, ctxt, 
-            chebyshev_coef_deg_3, 1), 0, ctxt_test);
+        // std::vector<Real> chebyshev_coef_deg_3 = {-1.5, 2.75, -1.5, 0.25};
 
-        
+        // evaluator.add(evaluateChebyshevExpansion(evaluator, ctxt, 
+        //     chebyshev_coef_deg_3, false, 1), 0, ctxt_test);
+
+        // if (i==0){
+        //     std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
+        // }
+
+        // intersection_cheby.push_back(ctxt_test);
+
 
         // Alternative: Direct Product Evaluation
+
         Ciphertext temp(context);
         Ciphertext result(context);
 
@@ -400,7 +407,22 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     Ciphertext final(context);
     evaluator.mult(size, label_val, final);
 
+    Ciphertext tempInv(context);
+    approxInverseNewton(evaluator, temp, tempInv, 0.05, 4);
+
     compute_sum(final);
+
+    std::cout << std::endl;   
+    std::cout << "Use approxInverse" << std::endl; 
+
+    evaluator.mult(final, tempInv, temp);
+    std::cout << "Result level : " << temp.getLevel() << std::endl;
+
+    decryptor.decrypt(temp, sk, dmsg);
+    printMessage(dmsg);
+
+    std::cout << std::endl;
+
     evaluator.mult(final, 1.0 / 10, final);
     std::cout << "done" << std::endl;
 

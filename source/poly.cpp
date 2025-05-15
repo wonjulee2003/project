@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 #include "HEaaN/HEaaN.hpp"
 #include "utils.hpp"
@@ -61,11 +62,20 @@ int main(void){
 
     // This is the approximation polynomial of degree 7
     // for sigmoid function 1 / (1 + exp(-x)).
-    std::vector<Real> chebyshev_coef_deg_3 = {-1.5, 2.75, -1.5, 0.25};
-    static const std::vector<Real> chebyshev_coef_deg_5{
-	-28.75, 50.875, -30.0, 9.0625, 
-	-1.25, 0.0625};
 
+    std::vector<Real> chebyCoefDeg3 = {
+	-1.5, 2.75, -1.5, 0.25};
+    u64 num_baby_step;
+
+    if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
+    else num_baby_step = pow(2,floor(ceil(log2(chebyCoefDeg3.size()))/2));
+
+    ChebyshevCoefficients chebyshev_coef_deg_3(chebyCoefDeg3, num_baby_step);
+
+    std::cout << "num_baby_step : " << num_baby_step << std::endl;
+    std::cout << "num_bs : " << chebyshev_coef_deg_3.num_bs << std::endl;
+    std::cout << "num_gs : " << chebyshev_coef_deg_3.num_gs << std::endl;
+    std::cout << "log_gs : " << chebyshev_coef_deg_3.log_gs << std::endl;
 
     SecretKey sk(context);
     KeyPack pack(context);
@@ -92,7 +102,8 @@ int main(void){
                     static_cast<HEaaN::Real>(num_slots));
         msg[i].imag(0.0);
     }
-    msg[0].real(2.0);
+    msg[0].real(0.0); msg[1].real(1.0);
+    msg[2].real(2.0); msg[3].real(3.0);
     printMessage(msg);
 
     Ciphertext ctxt(context);
@@ -100,9 +111,8 @@ int main(void){
 
     std::cout << "Level before computing : " << ctxt.getLevel() << std::endl;
 
-    eval.add(evaluateChebyshevExpansion(eval, ctxt, 
-    chebyshev_coef_deg_5, false, 1), 0, ctxt);
-
+    eval.add(evaluateChebyshev(eval, ctxt, 
+    chebyshev_coef_deg_3, 1), 0, ctxt);
 
     std::cout << "done ..." << std::endl;
     std::cout << "Level after computing : " << ctxt.getLevel() << std::endl;

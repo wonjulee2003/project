@@ -284,7 +284,13 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     Message zero_msg(log_slots); 
     fillReal(zero_msg, 0.0);
 
-    Ciphertext ctxt_test(context);
+    // prepare for cheby setting
+    const std::vector<Real> chebyCoefDeg3 = {
+	-1.5, 2.75, -1.5, 0.25};
+    u64 num_baby_step;
+
+    if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
+    else num_baby_step = pow(2,floor(ceil(log2(chebyCoefDeg3.size()))/2));
 
     // beginning of main loop
     for (int i=0; i<server_bin_size; i++) {
@@ -335,17 +341,21 @@ stringstream Server::serverMultipleLabelComp(Params &params){
         // input : ciphertext ctxt, poly coefficients (potentially using a lookup table for small domains)
         // output : ciphertext ctxt (or other ciphertext storage)
 
+        Ciphertext ctxt_test(context);
+        ChebyshevCoefficients chebyshev_coef_deg_3(chebyCoefDeg3, num_baby_step);
 
-        // std::vector<Real> chebyshev_coef_deg_3 = {-1.5, 2.75, -1.5, 0.25};
+        if (i==0){
+            std::cout << "Ciphertext - initial level " << ctxt.getLevel() << std::endl;
+        }
+        
+        evaluator.add(evaluateChebyshev(evaluator, ctxt, 
+            chebyshev_coef_deg_3, 1.0/6), 0, ctxt_test);
 
-        // evaluator.add(evaluateChebyshevExpansion(evaluator, ctxt, 
-        //     chebyshev_coef_deg_3, false, 1), 0, ctxt_test);
+        if (i==0){
+            std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
+        }
 
-        // if (i==0){
-        //     std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
-        // }
-
-        // intersection_cheby.push_back(ctxt_test);
+        intersection_cheby.push_back(ctxt_test);
 
 
         // Alternative: Direct Product Evaluation
@@ -355,9 +365,9 @@ stringstream Server::serverMultipleLabelComp(Params &params){
 
         evaluator.add(ctxt, 0, result);
 
-        if (i==0){
-            std::cout << "Result Ciphertext - initial level " << result.getLevel() << std::endl;
-        }
+        // if (i==0){
+        //     std::cout << "Result Ciphertext - initial level " << result.getLevel() << std::endl;
+        // }
 
         for (int k=0;k<hw-1;k++){
             evaluator.sub(ctxt, subtraction[k], temp);
@@ -377,13 +387,12 @@ stringstream Server::serverMultipleLabelComp(Params &params){
         // level 2 for hamming weight of 5
     }
 
-
     // sum each elt of intersection to get the total intersection.
     Ciphertext size(context);
     encryptor.encrypt(zero_msg, pack, size);
 
     for (int i = 0; i < server_bin_size; i++){
-        evaluator.add(size, intersection[i], size);
+        evaluator.add(size, intersection_cheby[i], size);
     }
 
     // multiply mask(ptxt) and compute the size of intersection and average

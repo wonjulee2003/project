@@ -256,7 +256,7 @@ Ciphertext babyStepWithReducedCoeffs(const HomEvaluator &eval,
 //     recursiveGiantStep(gs_first, gs_first + 2^k) +
 //     cheby_g[k] * recursiveGiantStep(gs_first + 2^k, gs_end)
 Ciphertext recursiveGiantStep(const HomEvaluator &eval,
-                              const std::vector<Real> &coeffs,
+                              std::vector<Real> &coeffs,
                               std::vector<Ciphertext> &cheby_b,
                               std::vector<Ciphertext> &cheby_g,
                               const u64 gs_first, const u64 gs_end,
@@ -281,13 +281,9 @@ Ciphertext recursiveGiantStep(const HomEvaluator &eval,
                                             bs_length, multiplier);
     }
 
-    std::cout << "gs_length : " << gs_length << std::endl;
-
     // gs_idx = k such that 2^k < gs_length <= 2^{k+1}.
     const u64 gs_idx = static_cast<u64>(std::ceil(std::log2(gs_length))) - 1;
     const u64 gs_mid = gs_first + (1 << gs_idx);
-
-    std::cout << "gs_mid : " << gs_mid << std::endl;
 
     const u64 bs_first_of_mid = gs_mid * cheby_b.size();
     if (bs_first_of_mid == coeffs.size() - 1) {
@@ -355,52 +351,149 @@ Ciphertext recursiveGiantStep(const HomEvaluator &eval,
     return res;
 }
 
+Ciphertext transformForChebyshev(const HomEvaluator &eval,
+                                 const Ciphertext &ctxt,
+                                 const InputInterval &input_interval) {
+    Ciphertext res{ctxt};
+    const Real left_end = input_interval.left_end;
+    const Real right_end = input_interval.right_end;
+    if (right_end + left_end != 0)
+        eval.sub(res, (right_end + left_end) / 2.0, res);
+    if (right_end - left_end != 0)
+        eval.mult(res, 2.0 / (right_end - left_end), res);
+
+    return res;
+}
+
 Ciphertext evaluateChebyshevExpansion(const HomEvaluator &eval,
                                       const Ciphertext &ctxt,
-                                      const std::vector<Real> &cheby_coeffs,
-                                      const bool basisIsOdd,
+                                      ChebyshevCoefficients &cheby_coeffs,
                                       const Real multiplier) {
+    if (ctxt.getLevel() < cheby_coeffs.level_cost) {
+        throw RuntimeException("[evaluateChebyshevExpansion] input level must "
+                               "be greater than the level cost " +
+                               std::to_string(cheby_coeffs.level_cost));
+    }
 
     // Preparation
-    const u64 logDeg = ceil(log2(cheby_coeffs.size()));
-    const u64 logDegHalf = floor(logDeg/2);
-    
-    const u64 num_bs = pow(2, logDegHalf);
-    const u64 num_gs = logDeg - logDegHalf;
-    const u64 log_gs = logDeg - logDegHalf;
-
-    std::cout << 1 << std::endl;                                        
+    const u64 num_bs = cheby_coeffs.num_bs;
+    const u64 num_gs = cheby_coeffs.num_gs;
+    const u64 log_gs = cheby_coeffs.log_gs;
 
     std::vector<Ciphertext> cheby_b;
     // Generate Chebyshev polynomials for baby-step
-    if (!basisIsOdd || (num_bs & (num_bs - 1)) != 0)
+    if (cheby_coeffs.basis == PolynomialBasis::basic ||
+        (num_bs & (num_bs - 1)) != 0)
         genChebyshevPolyForBS(eval, ctxt, num_bs, cheby_b);
-    else if (basisIsOdd || (num_bs & (num_bs - 1)) == 0)
+    else if (cheby_coeffs.basis == PolynomialBasis::odd ||
+             (num_bs & (num_bs - 1)) == 0)
         genChebyshevOddPolyForBS(eval, ctxt, num_bs, cheby_b);
 
     Ciphertext res(eval.getContext());
 
-    std::cout << 2 << " " << num_gs << std::endl;
-
     if (num_gs == 1) {
-        res = babyStepWithReducedCoeffs(eval, cheby_coeffs, cheby_b, 0,
-                                        cheby_coeffs.size(), multiplier);
+        res = babyStepWithReducedCoeffs(eval, cheby_coeffs.coeffs, cheby_b, 0,
+                                        cheby_coeffs.coeffs.size(), multiplier);
     } else {
         // Generate Chebyshev polynomials for giant-step
         std::vector<Ciphertext> cheby_g =
             genChebyshevPolyForGS(eval, cheby_b, log_gs);
-
-        std::cout << 3 << std::endl;
 
         const bool reduce_level_cost = (num_gs & (num_gs - 1)) == 0;
         if (!reduce_level_cost) {
             levelDownForBS(eval, cheby_b, cheby_b.size() - 1);
         }
 
-        std::cout << 4 << std::endl;
-
-        res = recursiveGiantStep(eval, cheby_coeffs, cheby_b, cheby_g, 0,
+        res = recursiveGiantStep(eval, cheby_coeffs.coeffs, cheby_b, cheby_g, 0,
                                  num_gs, multiplier, reduce_level_cost);
+    }
+
+    return res;
+}
+
+void modOperate(  std::vector<Real> &coeffs, 
+                  const u64 start, const u64 mid, const u64 deg){             
+    u64 end = std::min(mid + deg, coeffs.size());
+
+    for(u64 i = mid+1; i < end; i++){
+        coeffs[start + deg-i+mid] -= coeffs[i]; 
+        coeffs[i] *= 2;               
+    }
+}
+
+Ciphertext recursiveGS( const HomEvaluator &eval,
+                        std::vector<Real> &coeffs,
+                        std::vector<Ciphertext> &cheby_b,
+                        std::vector<Ciphertext> &cheby_g,
+                        const u64 start, const int power, const u64 num_bs,
+                        const Real multiplier){                       
+    if(power < 0){
+        Ciphertext res = babyStepWithReducedCoeffs(eval, coeffs, cheby_b, start,
+                                        num_bs, multiplier);
+
+        return res;                                        
+    }
+    
+    u64 deg = (1 << power) * num_bs;
+    u64 mid = start + deg;
+    modOperate(coeffs, start, mid, deg);
+
+    Ciphertext rest = recursiveGS(eval, coeffs, cheby_b, cheby_g,
+                                        start, power-1, num_bs, multiplier);
+    Ciphertext quotient = recursiveGS(eval, coeffs, cheby_b, cheby_g,
+                                        mid, power-1, num_bs, multiplier);                                        
+
+    Ciphertext res(eval.getContext());
+    eval.mult(quotient, cheby_g[power], quotient);
+    eval.add(rest, quotient, res);         
+
+    return res;                                            
+}
+
+Ciphertext evaluateChebyshev( const HomEvaluator &eval,
+                              const Ciphertext &ctxt,
+                              ChebyshevCoefficients &cheby_coeffs,
+                              const Real multiplier) {
+    if (ctxt.getLevel() < cheby_coeffs.level_cost) {
+        throw RuntimeException("[evaluateChebyshevExpansion] input level must "
+                               "be greater than the level cost " +
+                               std::to_string(cheby_coeffs.level_cost));
+    }
+
+    // Preparation
+    const u64 num_bs = cheby_coeffs.num_bs;
+    const u64 num_gs = cheby_coeffs.num_gs;
+    const int power = cheby_coeffs.log_gs;
+
+    std::vector<Ciphertext> cheby_b;
+    // Generate Chebyshev polynomials for baby-step
+    if (cheby_coeffs.basis == PolynomialBasis::basic ||
+        (num_bs & (num_bs - 1)) != 0)
+        genChebyshevPolyForBS(eval, ctxt, num_bs, cheby_b);
+    else if (cheby_coeffs.basis == PolynomialBasis::odd ||
+             (num_bs & (num_bs - 1)) == 0)
+        genChebyshevOddPolyForBS(eval, ctxt, num_bs, cheby_b);
+
+    Ciphertext res(eval.getContext());
+
+    if (num_gs == 1) {
+        res = babyStepWithReducedCoeffs(eval, cheby_coeffs.coeffs, cheby_b, 0,
+                                        cheby_coeffs.coeffs.size(), multiplier);
+
+        // res = babyStepWithoutReducedCoeffs(eval, cheby_coeffs.coeffs, cheby_b, 0,
+        //                                 cheby_coeffs.coeffs.size(), multiplier);                                        
+    } else {
+        // Generate Chebyshev polynomials for giant-step
+        std::vector<Ciphertext> cheby_g =
+            genChebyshevPolyForGS(eval, cheby_b, power);
+
+        const bool reduce_level_cost = (num_gs & (num_gs - 1)) == 0;
+        if (!reduce_level_cost) {
+            levelDownForBS(eval, cheby_b, cheby_b.size() - 1);
+        }
+
+        res = recursiveGS(eval, cheby_coeffs.coeffs, cheby_b, cheby_g, 0,
+                                power-1, num_bs, multiplier);
     }
 
     return res;

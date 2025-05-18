@@ -10,8 +10,9 @@ int Server::server_hash(int mu, int bin_index, int bitLength){
 
 // constructor
 Server::Server(const string &string1, string &string2, stringstream &&source_stream, string &string4)
-    : context(makeContextFromFile(string1)), pack(context, string2), evaluator(context, pack), encryptor(context),
-    sk(context, string4), 
+    : context(makeContextFromFile(string1)), pack(context, string2), evaluator(context, pack), encryptor(context), btp(evaluator),
+    // sk passed over for debugging purposes
+    sk(context, string4),
     context_string{string1}, keypack_string{string2}, data_stream{source_stream.str()}, sk_string{string4}
 {
     std::cout << getDegree(context) << std::endl;
@@ -380,11 +381,6 @@ stringstream Server::serverMultipleLabelComp(Params &params){
         if (i==0){
             std::cout << "Result Ciphertext - post-comp level " << result.getLevel() << std::endl;
         }
-
-
-        // bootstrapping? 
-        // Using FGb parameters, we reach level 6 for result ciphertexts using hamming weight of 3. 
-        // level 2 for hamming weight of 5
     }
 
     // sum each elt of intersection to get the total intersection.
@@ -448,7 +444,11 @@ stringstream Server::serverMultipleLabelComp(Params &params){
 
     evaluator.mult(temp, temp, temp);
     evaluator.sub(temp2, temp, temp); // E(X^2) - E(X)^2
-    
+
+    // Boostrapping
+    btp.bootstrap(temp, temp, false);    
+    std::cout << "level after bootstrapping : " << temp.getLevel() << std::endl;
+
     std::cout << "Message before computing sqrt" << std::endl;
 
     decryptor.decrypt(temp, sk, dmsg);
@@ -457,18 +457,16 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     std::cout << std::endl;
 
     evaluator.mult(temp, 1.0/9, temp);
-    approxSqrtWilkes(evaluator, temp, temp2, 3);
-    evaluator.mult(temp2, 3, temp2);
+    approxSqrtWilkes(evaluator, temp, temp, 3);
+    evaluator.mult(temp, 3, temp);
 
     std::cout << "level after computing the standard deviation: " << temp2.getLevel() << std::endl;
 
-    decryptor.decrypt(temp2, sk, dmsg);
+    decryptor.decrypt(temp, sk, dmsg);
     printMessage(dmsg);
 
     std::cout << std::endl;
     
-    // compute standard deviation on vector (create a function)
-
 
     // // encrypt and send over (create a function)
     send_result(final);

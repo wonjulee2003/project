@@ -71,14 +71,25 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
     int server_bin_size = params.server_bin_size, effective_bitLength = params.effective_bitLength, 
     ell = params.ell, hw = params.hw;
 
+    const auto log_slots = getLogFullSlots(context);
+
     // generate procedure keys
-    cout << "Generating encryption, multiplication, and rotation keys ..." << endl;
+    cout << "Generating encryption, multiplication, conjugation, and rotation keys ..." << endl;
     keygen.genEncKey();
     keygen.genMultKey();
+    keygen.genConjKey();
     keygen.genRotKeyBundle();
+
+    // generate bootstrap keys
+    if (!isBootstrappableParameter(context)) {
+        std::cout << "Bootstrapping is not supported for selected parameter" << std::endl;
+    }
+    
+    std::cout << "Generate rotation keys used in the bootstrap process ..." << std::endl;
+    keygen.genRotKeysForBootstrap(log_slots);
+    
     cout << "Done." << endl;
 
-    const auto log_slots = getLogFullSlots(context);
 
     vector<Ciphertext> input;
     vector<vector<int>> encoding_vector(ell,vector<int>(1<<log_slots, 0));

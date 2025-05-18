@@ -24,6 +24,7 @@ public:
     HEaaN::KeyPack pack;
     HEaaN::HomEvaluator evaluator;
     HEaaN::Encryptor encryptor;
+    HEaaN::Bootstrapper btp;
     
     // for debugging
     HEaaN::SecretKey sk;

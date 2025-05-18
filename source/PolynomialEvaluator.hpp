@@ -104,13 +104,14 @@ HEaaN::Ciphertext evaluateChebyshevExpansion(const HEaaN::HomEvaluator &eval,
                                       const HEaaN::Real multiplier);
                 
 void modOperate(  std::vector<HEaaN::Real> &coeffs, 
-                  const HEaaN::u64 start, const HEaaN::u64 mid, const HEaaN::u64 deg);                                   
+                  const HEaaN::u64 start, const HEaaN::u64 mid, 
+                  const HEaaN::u64 end, const HEaaN::u64 deg);                                   
 
 HEaaN::Ciphertext recursiveGS( const HEaaN::HomEvaluator &eval,
                         std::vector<HEaaN::Real> &coeffs,
                         std::vector<HEaaN::Ciphertext> &cheby_b,
                         std::vector<HEaaN::Ciphertext> &cheby_g,
-                        const HEaaN::u64 start, const int power, const HEaaN::u64 num_bs,
+                        const HEaaN::u64 start, const int power,
                         const HEaaN::Real multiplier);
 
 HEaaN::Ciphertext evaluateChebyshev( const HEaaN::HomEvaluator &eval,

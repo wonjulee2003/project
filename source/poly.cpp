@@ -3,6 +3,8 @@
 #include <cmath>
 
 #include "HEaaN/HEaaN.hpp"
+// #include "HEaaN-math/HEaaN-math.hpp"
+
 #include "utils.hpp"
 #include "PolynomialEvaluator.hpp"
 
@@ -64,7 +66,8 @@ int main(void){
     // for sigmoid function 1 / (1 + exp(-x)).
 
     std::vector<Real> chebyCoefDeg3 = {
-	-1.5, 2.75, -1.5, 0.25};
+	5.875, -10.5, 6.0, -1.5, 
+	0.125};
     u64 num_baby_step;
 
     if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
@@ -104,9 +107,10 @@ int main(void){
     }
     msg[0].real(0.0); msg[1].real(1.0);
     msg[2].real(2.0); msg[3].real(3.0);
+    msg[4].real(4.0); msg[5].real(5.0);
     printMessage(msg);
 
-    Ciphertext ctxt(context);
+    Ciphertext ctxt(context), ctxt_out(context);
     enc.encrypt(msg, pack, ctxt);
 
     std::cout << "Level before computing : " << ctxt.getLevel() << std::endl;
@@ -120,6 +124,39 @@ int main(void){
     HEaaN::Message dmsg;
     std::cout << "Decrypt ... ";
     dec.decrypt(ctxt, sk, dmsg);
+    std::cout << "done" << std::endl;
+
+    std::cout << std::endl << "Result vector : " << std::endl;
+    printMessage(dmsg);
+
+    // evalCheby 할 때 재귀 부분에서 필요 이상으로 많은 연산 수행 중 
+    // 이거 줄여야 한다. (완료) 
+
+    // sqrt test
+
+    std::cout << std::endl << "Sqrt test" << std::endl;
+
+    for (size_t i = 0; i < num_slots; ++i) {
+        msg[i].real(0.0);
+        msg[i].imag(0.0);
+    }
+    msg[0].real(1.0); 
+    msg[1].real(4.0);
+    msg[2].real(9.0); 
+    printMessage(msg);
+
+    enc.encrypt(msg, pack, ctxt);
+    eval.mult(ctxt, 1.0/9, ctxt);
+
+    std::cout << "Level before computing : " << ctxt.getLevel() << std::endl;
+
+    approxSqrtWilkes(eval, ctxt, ctxt_out, 5);
+    eval.mult(ctxt_out, 3, ctxt_out);
+
+    std::cout << "Level after computing : " << ctxt_out.getLevel() << std::endl;
+
+    std::cout << "Decrypt ... ";
+    dec.decrypt(ctxt_out, sk, dmsg);
     std::cout << "done" << std::endl;
 
     std::cout << std::endl << "Result vector : " << std::endl;

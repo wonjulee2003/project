@@ -133,3 +133,39 @@ void approxInverseNewton(const HomEvaluator &eval,
 
     ctxt_out = ctxt_y;
 }
+
+void approxSqrtWilkes(const HomEvaluator &eval, 
+                    //   const Bootstrapper &btp,
+                      const Ciphertext &ctxt, Ciphertext &ctxt_out,
+                      const u64 num_iter) {
+    Ciphertext tmp(eval.getContext());
+    Ciphertext tmp2(eval.getContext());
+    static const u64 ONE_ITER_COST = 2;
+
+    ctxt_out = ctxt;
+
+    // if (ctxt_out.getLevel() < 1 + btp.getMinLevelForBootstrap()) {
+    //     btp.bootstrap(ctxt_out, ctxt_out);
+    // }
+    eval.sub(ctxt_out, 1, tmp);
+    eval.mult(tmp, 0.5, tmp);
+
+    for (u64 i = 0; i < num_iter; i++) {
+        // complex bootstrap
+        // if (tmp.getLevel() < ONE_ITER_COST + btp.getMinLevelForBootstrap()) {
+        //     eval.multImagUnit(tmp, tmp2);
+        //     eval.add(ctxt_out, tmp2, tmp2);
+        //     btp.bootstrap(tmp2, ctxt_out, tmp);
+        // }
+
+        // compute a_(k+1)
+        eval.negate(tmp, tmp2);
+        eval.add(tmp2, 1, tmp2);
+        eval.mult(ctxt_out, tmp2, ctxt_out);
+
+        // compute h_(k+1)
+        eval.sub(tmp, 1.5, tmp2);
+        eval.square(tmp, tmp);
+        eval.mult(tmp, tmp2, tmp);
+    }
+}

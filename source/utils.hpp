@@ -36,4 +36,9 @@ void approxInverseNewton(const HomEvaluator &eval,
                          const Ciphertext &ctxt, Ciphertext &ctxt_out,
                          Real initial, u64 num_iter);
 
+void approxSqrtWilkes(const HomEvaluator &eval, 
+                    //   const Bootstrapper &btp,
+                      const Ciphertext &ctxt, Ciphertext &ctxt_out,
+                      const u64 num_iter);
+
 #endif

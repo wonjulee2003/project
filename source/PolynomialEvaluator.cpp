@@ -411,10 +411,8 @@ Ciphertext evaluateChebyshevExpansion(const HomEvaluator &eval,
     return res;
 }
 
-void modOperate(  std::vector<Real> &coeffs, 
-                  const u64 start, const u64 mid, const u64 deg){             
-    u64 end = std::min(mid + deg, coeffs.size());
-
+void modOperate( std::vector<Real> &coeffs, 
+                 const u64 start, const u64 mid, const u64 end, const u64 deg){             
     for(u64 i = mid+1; i < end; i++){
         coeffs[start + deg-i+mid] -= coeffs[i]; 
         coeffs[i] *= 2;               
@@ -425,23 +423,52 @@ Ciphertext recursiveGS( const HomEvaluator &eval,
                         std::vector<Real> &coeffs,
                         std::vector<Ciphertext> &cheby_b,
                         std::vector<Ciphertext> &cheby_g,
-                        const u64 start, const int power, const u64 num_bs,
-                        const Real multiplier){                       
+                        const u64 start, const int power,
+                        const Real multiplier){        
+
+    // std::cout << "Come in" << std::endl;                            
+    // std::cout << start << " " << power << std::endl;                                   
+
+    u64 num_bs = cheby_b.size();  
+
     if(power < 0){
         Ciphertext res = babyStepWithReducedCoeffs(eval, coeffs, cheby_b, start,
                                         num_bs, multiplier);
-
-        return res;                                        
+        return res;
     }
-    
+                              
     u64 deg = (1 << power) * num_bs;
     u64 mid = start + deg;
-    modOperate(coeffs, start, mid, deg);
+    u64 end = std::min(mid + deg, coeffs.size());
+    
+    // half front
+    if(end - start <= num_bs){
+        std::cout << end - start << " here" << std::endl;
+        Ciphertext res = babyStepWithReducedCoeffs(eval, coeffs, cheby_b, start,
+                                        end-start, multiplier);
+        return res;
+    }
 
-    Ciphertext rest = recursiveGS(eval, coeffs, cheby_b, cheby_g,
-                                        start, power-1, num_bs, multiplier);
-    Ciphertext quotient = recursiveGS(eval, coeffs, cheby_b, cheby_g,
-                                        mid, power-1, num_bs, multiplier);                                        
+    // we need more GS. 
+    // half back
+    Ciphertext rest(eval.getContext()), quotient(eval.getContext());
+
+    if(end <= mid + 1){
+        rest = recursiveGS(eval, coeffs, cheby_b, cheby_g,
+                                    start, power-1, multiplier);  
+        eval.mult(quotient, 0, quotient);      
+
+        if(end == mid + 1){
+            // The case that one constant term exists 
+            eval.add(quotient, multiplier * coeffs[mid], quotient);
+        }
+    }else{
+        modOperate(coeffs, start, mid, end, deg);
+        rest = recursiveGS(eval, coeffs, cheby_b, cheby_g,
+                                    start, power-1, multiplier);
+        quotient = recursiveGS(eval, coeffs, cheby_b, cheby_g,
+                                    mid, power-1, multiplier);  
+    }                                    
 
     Ciphertext res(eval.getContext());
     eval.mult(quotient, cheby_g[power], quotient);
@@ -493,7 +520,7 @@ Ciphertext evaluateChebyshev( const HomEvaluator &eval,
         }
 
         res = recursiveGS(eval, cheby_coeffs.coeffs, cheby_b, cheby_g, 0,
-                                power-1, num_bs, multiplier);
+                                power-1, multiplier);
     }
 
     return res;

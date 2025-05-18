@@ -76,7 +76,7 @@ inline std::string presetNamer(const HEaaN::ParameterPreset preset) {
 
 int main(void) {
     std::cout << "main project" << std::endl;
-    Client client("FGb");
+    Client client("ST19");
     std::cout << "Parameter : " << presetNamer(client.preset) << std::endl;
     std::cout << getLogFullSlots(client.context) << std::endl;
 

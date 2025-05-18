@@ -142,15 +142,19 @@ int main(void){
     }
     msg[0].real(1.0); 
     msg[1].real(4.0);
-    msg[2].real(9.0); 
+    msg[2].real(6.25); 
     printMessage(msg);
 
     enc.encrypt(msg, pack, ctxt);
+    std::cout << "Level before mult : " << ctxt.getLevel() << std::endl;
+
     eval.mult(ctxt, 1.0/9, ctxt);
 
     std::cout << "Level before computing : " << ctxt.getLevel() << std::endl;
 
-    approxSqrtWilkes(eval, ctxt, ctxt_out, 5);
+    approxSqrtWilkes(eval, ctxt, ctxt_out, 3);
+
+    std::cout << "Level before mult : " << ctxt_out.getLevel() << std::endl;
     eval.mult(ctxt_out, 3, ctxt_out);
 
     std::cout << "Level after computing : " << ctxt_out.getLevel() << std::endl;

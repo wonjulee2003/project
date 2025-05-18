@@ -413,9 +413,10 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     // compute average
     std::cout << "Compute average ... ";
 
-    Ciphertext final(context);
+    Ciphertext final(context), squareEx(context);
     evaluator.mult(size, label_val, final);
-
+    evaluator.mult(final, final, squareEx);
+    
     Ciphertext tempInv(context);
     approxInverseNewton(evaluator, temp, tempInv, 0.05, 4);
 
@@ -432,9 +433,39 @@ stringstream Server::serverMultipleLabelComp(Params &params){
 
     std::cout << std::endl;
 
-    evaluator.mult(final, 1.0 / 10, final);
-    std::cout << "done" << std::endl;
+    // evaluator.mult(final, 1.0 / 10, final);
+    // std::cout << "done" << std::endl;
 
+    // Compute E(X^2) to find the standard deviation
+
+    Ciphertext temp2(context);
+    compute_sum(squareEx);
+
+    std::cout << "Compute E(X^2) using approxInverse" << std::endl;
+
+    evaluator.mult(squareEx, tempInv, temp2);
+    std::cout << "level after computing E(X^2) : " << temp2.getLevel() << std::endl;
+
+    evaluator.mult(temp, temp, temp);
+    evaluator.sub(temp2, temp, temp); // E(X^2) - E(X)^2
+    
+    std::cout << "Message before computing sqrt" << std::endl;
+
+    decryptor.decrypt(temp, sk, dmsg);
+    printMessage(dmsg);
+
+    std::cout << std::endl;
+
+    evaluator.mult(temp, 1.0/9, temp);
+    approxSqrtWilkes(evaluator, temp, temp2, 3);
+    evaluator.mult(temp2, 3, temp2);
+
+    std::cout << "level after computing the standard deviation: " << temp2.getLevel() << std::endl;
+
+    decryptor.decrypt(temp2, sk, dmsg);
+    printMessage(dmsg);
+
+    std::cout << std::endl;
     
     // compute standard deviation on vector (create a function)
 

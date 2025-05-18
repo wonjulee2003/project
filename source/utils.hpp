@@ -32,7 +32,8 @@ public:
     Params(int server_bin_size, int effective_bitLength, int hw);
 };
 
-void approxInverseNewton(const HomEvaluator &eval,
+void approxInverseNewton(const HomEvaluator &eval, 
+                        //  const Bootstrapper &btp,
                          const Ciphertext &ctxt, Ciphertext &ctxt_out,
                          Real initial, u64 num_iter);
 

@@ -101,7 +101,8 @@ Params::Params(int server_bin_size, int effective_bitLength, int hw)
         // bitLength = effective_bitLength + log_modulus_degree
      }
 
-void approxInverseNewton(const HomEvaluator &eval,
+void approxInverseNewton(const HomEvaluator &eval, 
+                        //  const Bootstrapper &btp,
                          const Ciphertext &ctxt, Ciphertext &ctxt_out,
                          Real initial, u64 num_iter) {
     const u64 one_iter_cost{1};
@@ -109,7 +110,12 @@ void approxInverseNewton(const HomEvaluator &eval,
     Ciphertext ctxt_x(eval.getContext()), ctxt_y(eval.getContext());
     Ciphertext ctxt_z(eval.getContext()), ctxt_tmp(eval.getContext());
 
-    ctxt_x = ctxt;
+    ctxt_x = ctxt;                            
+
+    // if (ctxt.getLevel() < btp.getLevelAfterFullSlotBootstrap())
+    //     btp.bootstrapExtended(ctxt, ctxt_x);
+    // else
+    //     ctxt_x = ctxt;
 
     // y_0 = initial
     // z_0 = x * y_0
@@ -124,6 +130,13 @@ void approxInverseNewton(const HomEvaluator &eval,
     //     = z_{n-1} * (2 - z_{n-1})
     // y_{n+1} = y_n * (2 - z_n)
     for (u64 iter = 1; iter < num_iter; iter++) {
+        // if (ctxt_y.getLevel() < one_iter_cost + btp.getMinLevelForBootstrap()) {
+        //     btp.bootstrap(ctxt_y, ctxt_y);
+        //     eval.mult(ctxt_x, ctxt_y, ctxt_z);
+        // } else {
+        //     eval.mult(ctxt_z, ctxt_tmp, ctxt_z);
+        // }
+
         eval.mult(ctxt_z, ctxt_tmp, ctxt_z);
 
         eval.negate(ctxt_z, ctxt_tmp); // tmp = 2 - z_n

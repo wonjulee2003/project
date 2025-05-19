@@ -101,8 +101,7 @@ Params::Params(int server_bin_size, int effective_bitLength, int hw)
         // bitLength = effective_bitLength + log_modulus_degree
      }
 
-void approxInverseNewton(const HomEvaluator &eval, 
-                        //  const Bootstrapper &btp,
+void approxInverseNewtonX(const HomEvaluator &eval, 
                          const Ciphertext &ctxt, Ciphertext &ctxt_out,
                          Real initial, u64 num_iter) {
     const u64 one_iter_cost{1};
@@ -112,10 +111,39 @@ void approxInverseNewton(const HomEvaluator &eval,
 
     ctxt_x = ctxt;                            
 
-    // if (ctxt.getLevel() < btp.getLevelAfterFullSlotBootstrap())
-    //     btp.bootstrapExtended(ctxt, ctxt_x);
-    // else
-    //     ctxt_x = ctxt;
+    eval.mult(ctxt_x, initial, ctxt_z);
+    eval.negate(ctxt_z, ctxt_tmp);
+    eval.add(ctxt_tmp, 2.0, ctxt_tmp); // tmp = 2 - z_0
+    eval.mult(ctxt_tmp, initial, ctxt_y);
+
+    // for n > 0
+    // z_n = x * y_n
+    //     = z_{n-1} * (2 - z_{n-1})
+    // y_{n+1} = y_n * (2 - z_n)
+    for (u64 iter = 1; iter < num_iter; iter++) {
+        eval.mult(ctxt_z, ctxt_tmp, ctxt_z);
+
+        eval.negate(ctxt_z, ctxt_tmp); // tmp = 2 - z_n
+        eval.add(ctxt_tmp, 2.0, ctxt_tmp);
+        eval.mult(ctxt_y, ctxt_tmp, ctxt_y);
+    }
+
+    ctxt_out = ctxt_y;
+}
+
+void approxInverseNewtonU(const HomEvaluator &eval, 
+                         const Bootstrapper &btp,
+                         const Ciphertext &ctxt, Ciphertext &ctxt_out,
+                         Real initial, u64 num_iter) {
+    const u64 one_iter_cost{1};
+
+    Ciphertext ctxt_x(eval.getContext()), ctxt_y(eval.getContext());
+    Ciphertext ctxt_z(eval.getContext()), ctxt_tmp(eval.getContext());
+
+    if (ctxt.getLevel() < btp.getLevelAfterFullSlotBootstrap())
+        btp.bootstrapExtended(ctxt, ctxt_x);
+    else
+        ctxt_x = ctxt;
 
     // y_0 = initial
     // z_0 = x * y_0
@@ -130,14 +158,12 @@ void approxInverseNewton(const HomEvaluator &eval,
     //     = z_{n-1} * (2 - z_{n-1})
     // y_{n+1} = y_n * (2 - z_n)
     for (u64 iter = 1; iter < num_iter; iter++) {
-        // if (ctxt_y.getLevel() < one_iter_cost + btp.getMinLevelForBootstrap()) {
-        //     btp.bootstrap(ctxt_y, ctxt_y);
-        //     eval.mult(ctxt_x, ctxt_y, ctxt_z);
-        // } else {
-        //     eval.mult(ctxt_z, ctxt_tmp, ctxt_z);
-        // }
-
-        eval.mult(ctxt_z, ctxt_tmp, ctxt_z);
+        if (ctxt_y.getLevel() < one_iter_cost + btp.getMinLevelForBootstrap()) {
+            btp.bootstrap(ctxt_y, ctxt_y);
+            eval.mult(ctxt_x, ctxt_y, ctxt_z);
+        } else {
+            eval.mult(ctxt_z, ctxt_tmp, ctxt_z);
+        }
 
         eval.negate(ctxt_z, ctxt_tmp); // tmp = 2 - z_n
         eval.add(ctxt_tmp, 2.0, ctxt_tmp);
@@ -147,8 +173,7 @@ void approxInverseNewton(const HomEvaluator &eval,
     ctxt_out = ctxt_y;
 }
 
-void approxSqrtWilkes(const HomEvaluator &eval, 
-                    //   const Bootstrapper &btp,
+void approxSqrtWilkesX(const HomEvaluator &eval, 
                       const Ciphertext &ctxt, Ciphertext &ctxt_out,
                       const u64 num_iter) {
     Ciphertext tmp(eval.getContext());
@@ -157,19 +182,45 @@ void approxSqrtWilkes(const HomEvaluator &eval,
 
     ctxt_out = ctxt;
 
-    // if (ctxt_out.getLevel() < 1 + btp.getMinLevelForBootstrap()) {
-    //     btp.bootstrap(ctxt_out, ctxt_out);
-    // }
+    eval.sub(ctxt_out, 1, tmp);
+    eval.mult(tmp, 0.5, tmp);
+
+    for (u64 i = 0; i < num_iter; i++) {
+        // compute a_(k+1)
+        eval.negate(tmp, tmp2);
+        eval.add(tmp2, 1, tmp2);
+        eval.mult(ctxt_out, tmp2, ctxt_out);
+
+        // compute h_(k+1)
+        eval.sub(tmp, 1.5, tmp2);
+        eval.square(tmp, tmp);
+        eval.mult(tmp, tmp2, tmp);
+    }
+}
+
+void approxSqrtWilkesU(const HomEvaluator &eval, 
+                      const Bootstrapper &btp,
+                      const Ciphertext &ctxt, Ciphertext &ctxt_out,
+                      const u64 num_iter) {
+    Ciphertext tmp(eval.getContext());
+    Ciphertext tmp2(eval.getContext());
+    static const u64 ONE_ITER_COST = 2;
+
+    ctxt_out = ctxt;
+
+    if (ctxt_out.getLevel() < 1 + btp.getMinLevelForBootstrap()) {
+        btp.bootstrap(ctxt_out, ctxt_out);
+    }
     eval.sub(ctxt_out, 1, tmp);
     eval.mult(tmp, 0.5, tmp);
 
     for (u64 i = 0; i < num_iter; i++) {
         // complex bootstrap
-        // if (tmp.getLevel() < ONE_ITER_COST + btp.getMinLevelForBootstrap()) {
-        //     eval.multImagUnit(tmp, tmp2);
-        //     eval.add(ctxt_out, tmp2, tmp2);
-        //     btp.bootstrap(tmp2, ctxt_out, tmp);
-        // }
+        if (tmp.getLevel() < ONE_ITER_COST + btp.getMinLevelForBootstrap()) {
+            eval.multImagUnit(tmp, tmp2);
+            eval.add(ctxt_out, tmp2, tmp2);
+            btp.bootstrap(tmp2, ctxt_out, tmp);
+        }
 
         // compute a_(k+1)
         eval.negate(tmp, tmp2);

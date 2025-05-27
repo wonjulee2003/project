@@ -87,7 +87,7 @@ HEaaN::Ciphertext babyStepWithReducedCoeffs(const HEaaN::HomEvaluator &eval,
                                      const HEaaN::Real multiplier);
                                      
 HEaaN::Ciphertext recursiveGiantStep(const HEaaN::HomEvaluator &eval,
-                              std::vector<HEaaN::Real> &coeffs,
+                              const std::vector<HEaaN::Real> &coeffs,
                               std::vector<HEaaN::Ciphertext> &cheby_b,
                               std::vector<HEaaN::Ciphertext> &cheby_g,
                               const HEaaN::u64 gs_first, const HEaaN::u64 gs_end,
@@ -100,7 +100,7 @@ HEaaN::Ciphertext transformForChebyshev(const HEaaN::HomEvaluator &eval,
 
 HEaaN::Ciphertext evaluateChebyshevExpansion(const HEaaN::HomEvaluator &eval,
                                       const HEaaN::Ciphertext &ctxt,
-                                      ChebyshevCoefficients &cheby_coeffs,
+                                      const ChebyshevCoefficients &cheby_coeffs,
                                       const HEaaN::Real multiplier);
                 
 void modOperate(  std::vector<HEaaN::Real> &coeffs, 

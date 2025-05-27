@@ -286,8 +286,7 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     fillReal(zero_msg, 0.0);
 
     // prepare for cheby setting
-    const std::vector<Real> chebyCoefDeg3 = {
-	-1.5, 2.75, -1.5, 0.25};
+    const std::vector<Real> chebyCoefDeg3 = ChebyCoefTable::ChebyCoefDeg[3];
     u64 num_baby_step;
 
     if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
@@ -414,7 +413,7 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     evaluator.mult(final, final, squareEx);
     
     Ciphertext tempInv(context);
-    approxInverseNewton(evaluator, temp, tempInv, 0.05, 4);
+    approxInverseNewtonX(evaluator, temp, tempInv, 0.05, 4);
 
     compute_sum(final);
 
@@ -457,7 +456,7 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     std::cout << std::endl;
 
     evaluator.mult(temp, 1.0/9, temp);
-    approxSqrtWilkes(evaluator, temp, temp, 3);
+    approxSqrtWilkesX(evaluator, temp, temp, 3);
     evaluator.mult(temp, 3, temp);
 
     std::cout << "level after computing the standard deviation: " << temp2.getLevel() << std::endl;

@@ -256,7 +256,7 @@ Ciphertext babyStepWithReducedCoeffs(const HomEvaluator &eval,
 //     recursiveGiantStep(gs_first, gs_first + 2^k) +
 //     cheby_g[k] * recursiveGiantStep(gs_first + 2^k, gs_end)
 Ciphertext recursiveGiantStep(const HomEvaluator &eval,
-                              std::vector<Real> &coeffs,
+                              const std::vector<Real> &coeffs,
                               std::vector<Ciphertext> &cheby_b,
                               std::vector<Ciphertext> &cheby_g,
                               const u64 gs_first, const u64 gs_end,
@@ -367,7 +367,7 @@ Ciphertext transformForChebyshev(const HomEvaluator &eval,
 
 Ciphertext evaluateChebyshevExpansion(const HomEvaluator &eval,
                                       const Ciphertext &ctxt,
-                                      ChebyshevCoefficients &cheby_coeffs,
+                                      const ChebyshevCoefficients &cheby_coeffs,
                                       const Real multiplier) {
     if (ctxt.getLevel() < cheby_coeffs.level_cost) {
         throw RuntimeException("[evaluateChebyshevExpansion] input level must "

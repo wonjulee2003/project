@@ -7,6 +7,7 @@
 
 #include "utils.hpp"
 #include "PolynomialEvaluator.hpp"
+#include "Sort.hpp"
 
 using namespace HEaaN;
 
@@ -65,9 +66,11 @@ int main(void){
     // This is the approximation polynomial of degree 7
     // for sigmoid function 1 / (1 + exp(-x)).
 
-    std::vector<Real> chebyCoefDeg3 = {
-	5.875, -10.5, 6.0, -1.5, 
-	0.125};
+    std::vector<Real> chebyCoefDeg3 = ChebyCoefTable::ChebyCoefDeg[4];
+
+    // std::vector<Real> chebyCoefDeg3 = {
+	// 5.875, -10.5, 6.0, -1.5, 
+	// 0.125};
     u64 num_baby_step;
 
     if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
@@ -90,11 +93,18 @@ int main(void){
 
     std::cout << "Generate multiplication key ... ";
     keygen.genMultKey();
+
+    std::cout << "Generating BTS key ..." << std::endl;
+
+    keygen.genConjKey();
+    keygen.genRotKeysForBootstrap(log_slots);
+
     std::cout << "done" << std::endl;
 
     Encryptor enc(context);
     Decryptor dec(context);
     HomEvaluator eval(context, pack);
+    Bootstrapper btp(eval);
 
     Message msg(log_slots);
 
@@ -134,30 +144,57 @@ int main(void){
 
     // sqrt test
 
-    std::cout << std::endl << "Sqrt test" << std::endl;
+    // std::cout << std::endl << "Sqrt test" << std::endl;
+
+    // for (size_t i = 0; i < num_slots; ++i) {
+    //     msg[i].real(0.0);
+    //     msg[i].imag(0.0);
+    // }
+    // msg[0].real(1.0); 
+    // msg[1].real(4.0);
+    // msg[2].real(6.25); 
+    // printMessage(msg);
+
+    // enc.encrypt(msg, pack, ctxt);
+    // std::cout << "Level before mult : " << ctxt.getLevel() << std::endl;
+
+    // eval.mult(ctxt, 1.0/9, ctxt);
+
+    // std::cout << "Level before computing : " << ctxt.getLevel() << std::endl;
+
+    // approxSqrtWilkesX(eval, ctxt, ctxt_out, 3);
+
+    // std::cout << "Level before mult : " << ctxt_out.getLevel() << std::endl;
+    // eval.mult(ctxt_out, 3, ctxt_out);
+
+    // std::cout << "Level after computing : " << ctxt_out.getLevel() << std::endl;
+
+    // std::cout << "Decrypt ... ";
+    // dec.decrypt(ctxt_out, sk, dmsg);
+    // std::cout << "done" << std::endl;
+
+    // std::cout << std::endl << "Result vector : " << std::endl;
+    // printMessage(dmsg);
+
+    // bootstrapping test
+    
+    std::cout << std::endl << "BootStrapping test ..." << std::endl;
 
     for (size_t i = 0; i < num_slots; ++i) {
         msg[i].real(0.0);
         msg[i].imag(0.0);
     }
-    msg[0].real(1.0); 
-    msg[1].real(4.0);
-    msg[2].real(6.25); 
+
+    for (size_t i = 0; i < 10; ++i) {
+        msg[i].real(1 - 0.1*i);
+        msg[i].imag(0.0);
+    }
+
+    std::cout << "message before sorting" << std::endl;
     printMessage(msg);
 
     enc.encrypt(msg, pack, ctxt);
-    std::cout << "Level before mult : " << ctxt.getLevel() << std::endl;
-
-    eval.mult(ctxt, 1.0/9, ctxt);
-
-    std::cout << "Level before computing : " << ctxt.getLevel() << std::endl;
-
-    approxSqrtWilkes(eval, ctxt, ctxt_out, 3);
-
-    std::cout << "Level before mult : " << ctxt_out.getLevel() << std::endl;
-    eval.mult(ctxt_out, 3, ctxt_out);
-
-    std::cout << "Level after computing : " << ctxt_out.getLevel() << std::endl;
+    unitSort(eval, btp, ctxt, ctxt_out, num_slots, true, false);
 
     std::cout << "Decrypt ... ";
     dec.decrypt(ctxt_out, sk, dmsg);

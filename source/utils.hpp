@@ -7,6 +7,7 @@
 #include <cmath>
 #include <random>
 #include <optional>
+#include <chrono>
 
 #include "HEaaN/HEaaN.hpp"
 
@@ -21,6 +22,15 @@ void printMessage(const HEaaN::Message &msg, bool is_complex = false,
 void fillRandomReal(HEaaN::Message &msg);
 double randNum();
 void fillReal(HEaaN::Message &msg, double val);
+
+// For computation evaluation
+class Timer {
+public:
+    std::chrono::steady_clock::time_point start_;
+    std::chrono::steady_clock::time_point end_;
+    void start();
+    long double end_and_get();
+};
 
 class Params {
 public:

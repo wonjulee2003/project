@@ -1,6 +1,5 @@
 #include "utils.hpp"
 
-
 using namespace std;
 using namespace HEaaN;
 
@@ -91,6 +90,18 @@ void fillReal(HEaaN::Message &msg, double val) {
         msg[idx].imag(0.0);
     }
 }
+
+// Timer methods
+void Timer::start(){
+    start_ = chrono::steady_clock::now();
+}
+
+long double Timer::end_and_get(){
+    end_ = chrono::steady_clock::now();
+    auto elapsed = chrono::duration_cast<chrono::milliseconds>(end_ - start_);
+    return elapsed.count();
+}
+
 
 Params::Params(int server_bin_size, int effective_bitLength, int hw)
     : server_bin_size{server_bin_size}, effective_bitLength{effective_bitLength}, ell{hw}, hw{hw}

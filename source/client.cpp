@@ -73,6 +73,8 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
 
     const auto log_slots = getLogFullSlots(context);
 
+    Timer key_timer;
+    key_timer.start();
     // generate procedure keys
     cout << "Generating encryption, multiplication, conjugation, and rotation keys ..." << endl;
     keygen.genEncKey();
@@ -88,6 +90,8 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
     std::cout << "Generate rotation keys used in the bootstrap process ..." << std::endl;
     keygen.genRotKeysForBootstrap(log_slots);
     
+    long key_time = key_timer.end_and_get();
+    cout << key_time << " ms"<< endl;
     cout << "Done." << endl;
 
 
@@ -108,7 +112,7 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
         Message msg(log_slots, complex);
         for (size_t i = 0; i < msg.getSize(); ++i) {
             msg[i].real(encoding_vector[l][i]);
-            if (i == msg.getSize()-1){
+            if (i == msg.getSize()-1 && l== ell-1){
                 std::cout << std::endl << "Message : " << msg.getSize() << std::endl;
                 printMessage(msg);
                 std::cout << std::endl;
@@ -116,9 +120,9 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
         }
 
         Ciphertext ctxt(context);
-        std::cout << "Encrypt ... ";
+        // std::cout << "Encrypt ... ";
         encryptor.encrypt(msg, pack, ctxt); 
-        std::cout << "done" << std::endl;
+        // std::cout << "done" << std::endl;
 
         input.push_back(ctxt);
     } 

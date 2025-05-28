@@ -42,6 +42,7 @@ public:
     std::stringstream server_computation(Params &params);
     void compute_sum(HEaaN::Ciphertext &ctxt);
 
+    std::stringstream server_computation_time(Params &params);
     std::stringstream serverMultipleLabelComp(Params &params);
 };
 

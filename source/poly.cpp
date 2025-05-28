@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <time.h>
 
 #include "HEaaN/HEaaN.hpp"
 // #include "HEaaN-math/HEaaN-math.hpp"
@@ -62,6 +63,9 @@ int main(void){
 
     const auto log_slots = getLogFullSlots(context);
     const auto num_slots = UINT64_C(1) << log_slots;
+
+    Timer key_timer;
+    key_timer.start();
 
     // This is the approximation polynomial of degree 7
     // for sigmoid function 1 / (1 + exp(-x)).
@@ -139,6 +143,9 @@ int main(void){
     std::cout << std::endl << "Result vector : " << std::endl;
     printMessage(dmsg);
 
+    long key_time = key_timer.end_and_get();
+    cout << key_time << " ms"<< endl;
+
     // evalCheby 할 때 재귀 부분에서 필요 이상으로 많은 연산 수행 중 
     // 이거 줄여야 한다. (완료) 
 
@@ -178,6 +185,8 @@ int main(void){
 
     // bootstrapping test
     
+    key_timer.start();
+
     std::cout << std::endl << "BootStrapping test ..." << std::endl;
 
     for (size_t i = 0; i < num_slots; ++i) {
@@ -194,7 +203,7 @@ int main(void){
     printMessage(msg);
 
     enc.encrypt(msg, pack, ctxt);
-    unitSort(eval, btp, ctxt, ctxt_out, num_slots, true, false);
+    // unitSort(eval, btp, ctxt, ctxt_out, num_slots, true, false);
 
     std::cout << "Decrypt ... ";
     dec.decrypt(ctxt_out, sk, dmsg);
@@ -202,6 +211,9 @@ int main(void){
 
     std::cout << std::endl << "Result vector : " << std::endl;
     printMessage(dmsg);
+
+    key_time = key_timer.end_and_get();
+    cout << key_time << " ms"<< endl;
 
     return 0;
 }

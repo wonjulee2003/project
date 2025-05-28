@@ -76,9 +76,12 @@ inline std::string presetNamer(const HEaaN::ParameterPreset preset) {
 
 int main(void) {
     std::cout << "main project" << std::endl;
-    Client client("FVb"); // FVb
+    Client client("FGb"); // FVb
     std::cout << "Parameter : " << presetNamer(client.preset) << std::endl;
     std::cout << getLogFullSlots(client.context) << std::endl;
+
+    // mu = ceil((float)num_balls/num_bins + 2 * sqrt((float)num_balls*log2(num_bins)/num_bins));
+    // server_bin_size used for PEPSI
 
     int server_bin_size = 10;
     // for our deterministic hashing(assignment) scheme, effective_bitLength > 15
@@ -94,8 +97,8 @@ int main(void) {
 
     Server server(context_string, keypack_string, std::move(data_stream), sk_string);
     // std::stringstream final_stream = std::move(server.server_computation(params));
-
-    std::stringstream final_stream = std::move(server.serverMultipleLabelComp(params));
+    // std::stringstream final_stream = std::move(server.serverMultipleLabelComp(params));
+    std::stringstream final_stream = std::move(server.server_computation_time(params));
 
     client.load_decrypt(final_stream);
 

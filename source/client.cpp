@@ -98,6 +98,9 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
     vector<Ciphertext> input;
     vector<vector<int>> encoding_vector(ell,vector<int>(1<<log_slots, 0));
 
+    cout << "Client data preprocessing begins" << endl;
+    key_timer.start();
+
     for (int bin_index = 0; bin_index < 1<<log_slots; bin_index++) {
         int hashed_val = client_hash(bin_index, effective_bitLength);
         vector<int> bit_val = PerfectMapping(hashed_val, ell, hw);
@@ -130,6 +133,10 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
     cout << "Saving client ciphertexts ...";
     save_ciphertext(input);
     cout << "done" << endl;
+
+    key_time = key_timer.end_and_get();
+    cout << key_time << " ms"<< endl;
+    cout << "Done." << endl;
 
     // for dubugging purposes ONLY.
     string sk_string = "secretkey.bin";

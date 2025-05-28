@@ -30,8 +30,8 @@ void compForSort(const HomEvaluator &eval, const Bootstrapper &btp,
                  Ciphertext &res) {
     Ciphertext rot(eval.getContext());
     eval.leftRotate(op, dist, rot);
-    if (rot.getLevel() < 1 + btp.getMinLevelForBootstrap())
-        btp.bootstrap(rot, rot);
+    if (rot.getLevel() < 1 + btp.getMinLevelForBootstrap()){
+        btp.bootstrap(rot, rot);}
     eval.mult(rot, mask, rot);
     eval.sub(op, rot, res);
     approxSignDecomposition(eval, btp, res, res, 13, -18, 0.5);
@@ -86,14 +86,14 @@ void twoSort(const HomEvaluator &eval, const Bootstrapper &btp, Ciphertext &res,
     Message mask = genMasks(log_slots, dist1);
     mask.to(res.getDevice());
 
-    if (res.getLevel() < 3 + btp.getMinLevelForBootstrap())
-        btp.bootstrap(res, res);
+    if (res.getLevel() < 3 + btp.getMinLevelForBootstrap()){
+        btp.bootstrap(res, res);}
 
     Ciphertext ctxt_comp(eval.getContext());
     compForSort(eval, btp, res, mask, dist1, ctxt_comp);
 
-    if (ctxt_comp.getLevel() < 1 + btp.getMinLevelForBootstrap())
-        btp.bootstrap(ctxt_comp, ctxt_comp);
+    if (ctxt_comp.getLevel() < 1 + btp.getMinLevelForBootstrap()){
+        btp.bootstrap(ctxt_comp, ctxt_comp);}
     Ciphertext ctxt1(eval.getContext()), ctxt2(eval.getContext());
     eval.mult(res, mask, ctxt1);
     eval.leftRotate(res, dist1, res);
@@ -127,8 +127,8 @@ void unitSort(const HomEvaluator &eval, const Bootstrapper &btp,
         bool flip = !(i == log_n - 1);
 
         if (flip) {
-            if (res.getLevel() < 1 + btp.getMinLevelForBootstrap())
-                btp.bootstrap(res, res);
+            if (res.getLevel() < 1 + btp.getMinLevelForBootstrap()){
+                btp.bootstrap(res, res);}
             flipCtxt(eval, res, 1 << i);
         }
 
@@ -140,8 +140,8 @@ void unitSort(const HomEvaluator &eval, const Bootstrapper &btp,
         }
 
         if (flip) {
-            if (res.getLevel() < 1 + btp.getMinLevelForBootstrap())
-                btp.bootstrap(res, res);
+            if (res.getLevel() < 1 + btp.getMinLevelForBootstrap()){
+                btp.bootstrap(res, res);}
             flipCtxt(eval, res, 1 << i);
         }
     }

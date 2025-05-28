@@ -78,6 +78,17 @@ stringstream Server::server_computation(Params &params){
     vector<Ciphertext>mu_result;
     vector<Ciphertext>intersection;
 
+    Message zero_msg(log_slots); 
+    fillReal(zero_msg, 0.0);
+
+    vector<Ciphertext> intersection_cheby;
+
+    const std::vector<Real> chebyCoefDeg3 = ChebyCoefTable::ChebyCoefDeg[3];
+    u64 num_baby_step;
+
+    if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
+    else num_baby_step = pow(2,floor(ceil(log2(chebyCoefDeg3.size()))/2));
+
     // beginning of main loop
     for (int i=0; i<server_bin_size; i++) {
         vector<vector<int>> operand_vec(ell,vector<int>(1<<log_slots, 0));
@@ -91,7 +102,7 @@ stringstream Server::server_computation(Params &params){
         } 
         
         Ciphertext ctxt(context);
-        Message zero_msg(log_slots); 
+        // Message zero_msg(log_slots); 
         fillReal(zero_msg, 0.0);
         encryptor.encrypt(zero_msg, pack, ctxt);
         
@@ -119,6 +130,22 @@ stringstream Server::server_computation(Params &params){
         // add Chebyshev Basis Evaluation Function HERE
         // input : ciphertext ctxt, poly coefficients (potentially using a lookup table for small domains)
         // output : ciphertext ctxt (or other ciphertext storage)
+
+        Ciphertext ctxt_test(context);
+        ChebyshevCoefficients chebyshev_coef_deg_3(chebyCoefDeg3, num_baby_step);
+
+        if (i==0){
+            std::cout << "Ciphertext - initial level " << ctxt.getLevel() << std::endl;
+        }
+        
+        evaluator.add(evaluateChebyshev(evaluator, ctxt, 
+            chebyshev_coef_deg_3, 1.0/6), 0, ctxt_test);
+
+        if (i==0){
+            std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
+        }
+
+        intersection_cheby.push_back(ctxt_test);
 
         // Alternative: Direct Product Evaluation
         Ciphertext temp(context);
@@ -151,10 +178,11 @@ stringstream Server::server_computation(Params &params){
         // level 2 for hamming weight of 5
     }
 
+    // ================================
 
     // sum each index of mu_result[i]
     Ciphertext size(context);
-    Message zero_msg(log_slots); 
+    // Message zero_msg(log_slots); 
     fillReal(zero_msg, 0.0);
     encryptor.encrypt(zero_msg, pack, size);
 
@@ -170,6 +198,7 @@ stringstream Server::server_computation(Params &params){
     }
     std::cout << "Result Ciphertext - level " << final.getLevel() << std::endl;
 
+    // ================================
 
     // compute the size of intersection
     std::cout << "Compute intersection size ... ";
@@ -194,6 +223,250 @@ stringstream Server::server_computation(Params &params){
 
     // // encrypt and send over (create a function)
     send_result(final);
+    cout << "Server side completed." << endl;
+
+    return move(data_stream);
+}
+
+stringstream Server::server_computation_time(Params &params){
+    cout << "Server computation <time> begins" << endl;
+
+    int server_bin_size = params.server_bin_size, effective_bitLength = params.effective_bitLength, 
+    ell = params.ell, hw = params.hw;
+    
+    const auto log_slots = getLogFullSlots(context);
+
+    Timer key_timer;
+
+    vector<Ciphertext> inputs;
+
+    std::cout << "Loading Client ctxt(communication cost)" << std::endl;
+    key_timer.start();
+    
+    //loading ciphertexts
+    Ciphertext ct_temp(context);
+    for (int i=0;i<params.ell;i++){
+        ct_temp.load(data_stream);
+        inputs.push_back(ct_temp);
+    }
+    long key_time = key_timer.end_and_get();
+    cout << key_time << " ms"<< endl;
+    cout << "Done." << endl;
+
+
+    data_stream.str("");
+    std::cout << "Saved number of ciphertexts : " << inputs.size() << std::endl;
+
+
+    // create labels for Circuit + Labelled PSI
+    // using single ciphertext for simulation
+    Message label_msg(log_slots);
+    double val = 5;
+    fillReal(label_msg, val);
+
+    // subtraction vector of [hw]
+    // vector<Message> subtraction(hw-1);
+    // for (double i=1;i<hw;i++){
+    //     Message msg(log_slots);
+    //     fillReal(msg, i);
+    //     subtraction[i-1] = msg;
+    // }
+    // vector<Message> factorial(hw-1);
+    // for (double i=2;i<hw+1;i++) {
+    //     Message msg(log_slots);
+    //     fillReal(msg, 1.0/i);
+    //     factorial[i-2] = msg;
+    // }
+
+    // store final results here
+    // vector<Ciphertext>mu_result;
+    // vector<Ciphertext>intersection;
+
+    Message zero_msg(log_slots); 
+    fillReal(zero_msg, 0.0);
+
+    vector<Ciphertext> intersection_cheby;
+
+    const std::vector<Real> chebyCoefDeg3 = ChebyCoefTable::ChebyCoefDeg[3];
+    u64 num_baby_step;
+
+    if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
+    else num_baby_step = pow(2,floor(ceil(log2(chebyCoefDeg3.size()))/2));
+
+    std::cout << "Server data preprocessing begins" << std::endl;
+    key_timer.start();
+
+    vector<vector<vector<int>>> operand_vec(server_bin_size, 
+        vector<vector<int>>(ell,vector<int>(1<<log_slots, 0)));
+
+    for (int i=0; i<server_bin_size; i++) {
+        for (int bin_index = 0; bin_index < 1<<log_slots; bin_index++) {
+            int hashed_val = server_hash(i, bin_index, effective_bitLength);
+            vector<int> bit_val = PerfectMapping(hashed_val, ell, hw);
+            for (int bit_index = 0; bit_index < ell; bit_index++) {
+                operand_vec[i][bit_index][bin_index] = bit_val[bit_index];
+            }
+        } 
+    }
+
+    key_time = key_timer.end_and_get();
+    cout << key_time << " ms"<< endl;
+    cout << "Done." << endl;
+
+
+    std::cout << "Server Computation begins" << std::endl;
+    key_timer.start();
+
+    // beginning of main loop
+    for (int i=0; i<server_bin_size; i++) {
+        // vector<vector<int>> operand_vec(ell,vector<int>(1<<log_slots, 0));
+
+        // for (int bin_index = 0; bin_index < 1<<log_slots; bin_index++) {
+        //     int hashed_val = server_hash(i, bin_index, effective_bitLength);
+        //     vector<int> bit_val = PerfectMapping(hashed_val, ell, hw);
+        //     for (int bit_index = 0; bit_index < ell; bit_index++) {
+        //         operand_vec[bit_index][bin_index] = bit_val[bit_index];
+        //     }
+        // } 
+        
+        Ciphertext ctxt(context);
+        // Message zero_msg(log_slots); 
+        fillReal(zero_msg, 0.0);
+        encryptor.encrypt(zero_msg, pack, ctxt);
+        
+
+        for (int l=0; l<ell; l++){
+            HEaaN::Complex complex{0};
+            Message msg(log_slots, complex);
+            Ciphertext temp(context);
+            for (int k=0; k<msg.getSize(); k++) {
+                msg[k].real(operand_vec[i][l][k]);
+                // if (k == msg.getSize()-1 && i == 4){
+                //     std::cout << std::endl << "Server Message : " << std::endl;
+                //     printMessage(msg);
+                //     std::cout << std::endl;
+                // }
+            }
+
+            evaluator.mult(inputs[l], msg, temp);
+            // std::cout << "Result Ciphertext - level " << temp.getLevel() << std::endl;
+
+            // sum all individual ciphertext vectors in temp_ct to obtain h' (ctxt)
+            evaluator.add(ctxt, temp, ctxt);
+        }
+
+        // add Chebyshev Basis Evaluation Function HERE
+        // input : ciphertext ctxt, poly coefficients (potentially using a lookup table for small domains)
+        // output : ciphertext ctxt (or other ciphertext storage)
+
+        Ciphertext ctxt_test(context);
+        ChebyshevCoefficients chebyshev_coef_deg_3(chebyCoefDeg3, num_baby_step);
+
+        if (i==0){
+            std::cout << "Ciphertext - initial level " << ctxt.getLevel() << std::endl;
+        }
+        
+        evaluator.add(evaluateChebyshev(evaluator, ctxt, 
+            chebyshev_coef_deg_3, 1.0/6), 0, ctxt_test);
+
+        if (i==0){
+            std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
+        }
+
+        intersection_cheby.push_back(ctxt_test);
+
+        // Alternative: Direct Product Evaluation
+        // Ciphertext temp(context);
+        // Ciphertext result(context);
+
+        // evaluator.mult(ctxt, 1.0, result);
+
+        // if (i==0){
+        //     std::cout << "Result Ciphertext - initial level " << result.getLevel() << std::endl;
+        // }
+
+        // for (int k=0;k<hw-1;k++){
+        //     evaluator.sub(ctxt, subtraction[k], temp);
+        //     evaluator.mult(result, temp, result);
+        //     evaluator.mult(result, factorial[k], result);
+        // }
+        // // store final value in mu_result[i] and multiply by the label
+        // intersection.push_back(result);
+        // evaluator.mult(result, label_msg, result);
+
+        // if (i==0){
+        //     std::cout << "Result Ciphertext - post-comp level " << result.getLevel() << std::endl;
+        // }
+
+        // mu_result.push_back(result);
+
+
+        // bootstrapping? 
+        // Using FGb parameters, we reach level 6 for result ciphertexts using hamming weight of 3. 
+        // level 2 for hamming weight of 5
+    }
+
+    // ================================
+
+    // // sum each index of mu_result[i]
+    // Ciphertext size(context);
+    // // Message zero_msg(log_slots); 
+    // fillReal(zero_msg, 0.0);
+    // encryptor.encrypt(zero_msg, pack, size);
+
+    // for (int i = 0; i < mu_result.size(); i++){
+    //     evaluator.add(size, intersection[i], size);
+    // }
+
+    // Ciphertext final(context);
+    // encryptor.encrypt(zero_msg, pack, final);
+
+    // for (int i = 0; i < mu_result.size(); i++){
+    //     evaluator.add(final, mu_result[i], final);
+    // }
+    // std::cout << "Result Ciphertext - level " << final.getLevel() << std::endl;
+
+    // ================================
+
+    // Check the case that only find intersection
+
+    Ciphertext size(context);
+    // Message zero_msg(log_slots); 
+    fillReal(zero_msg, 0.0);
+    encryptor.encrypt(zero_msg, pack, size);
+
+    for (int i = 0; i < intersection_cheby.size(); i++){
+        evaluator.add(size, intersection_cheby[i], size);
+    }
+
+    key_time = key_timer.end_and_get();
+    cout << key_time << " ms"<< endl;
+    cout << "Done." << endl;
+
+    // compute the size of intersection
+    // std::cout << "Compute intersection size ... ";
+    // compute_sum(size);
+    // std::cout << "done" << std::endl;
+
+    // DEBUGGING
+    Decryptor decryptor(context);
+    Message dmsg(log_slots);
+    decryptor.decrypt(size, sk, dmsg);
+    printMessage(dmsg);
+
+    // compute average
+    // std::cout << "Compute average ... ";
+    // compute_sum(final);
+    // evaluator.mult(final, 1.0 / (1 << log_slots), final);
+    // std::cout << "done" << std::endl;
+
+    
+    // compute standard deviation on vector (create a function)
+
+
+    // // encrypt and send over (create a function)
+    // send_result(final);
+    send_result(size);
     cout << "Server side completed." << endl;
 
     return move(data_stream);

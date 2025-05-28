@@ -10,6 +10,8 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <tuple>
+#include <fstream>
+#include <string>
 
 #include "HEaaN/HEaaN.hpp"
 #include "utils.hpp"

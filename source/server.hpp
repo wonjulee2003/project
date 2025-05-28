@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <fstream>
 
 #include <unordered_set>
 
@@ -24,7 +25,7 @@ public:
     HEaaN::KeyPack pack;
     HEaaN::HomEvaluator evaluator;
     HEaaN::Encryptor encryptor;
-    HEaaN::Bootstrapper btp;
+    // HEaaN::Bootstrapper btp;
     
     // for debugging
     HEaaN::SecretKey sk;

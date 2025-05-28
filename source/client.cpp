@@ -72,33 +72,53 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
     ell = params.ell, hw = params.hw;
 
     const auto log_slots = getLogFullSlots(context);
+    
+    // generate procedure keys
+    cout << "Generating encryption, multiplication, conjugation, and rotation keys ..." << endl;
+
+    std::ofstream file;
+    file.open("/home/jimineum/ckks_psi/project/genkey.txt", ios::app);
+
+    if(!file.is_open()){
+        std::cout << "Cannot open the file" << std::endl;
+        exit(1);
+    }
 
     Timer key_timer;
     key_timer.start();
-    // generate procedure keys
-    cout << "Generating encryption, multiplication, conjugation, and rotation keys ..." << endl;
+
+
     keygen.genEncKey();
     keygen.genMultKey();
-    keygen.genConjKey();
-    keygen.genRotKeyBundle();
+    // keygen.genConjKey();
+    // keygen.genRotKeyBundle();
 
-    // generate bootstrap keys
-    if (!isBootstrappableParameter(context)) {
-        std::cout << "Bootstrapping is not supported for selected parameter" << std::endl;
-    }
+    // // generate bootstrap keys
+    // if (!isBootstrappableParameter(context)) {
+    //     std::cout << "Bootstrapping is not supported for selected parameter" << std::endl;
+    // }
     
-    std::cout << "Generate rotation keys used in the bootstrap process ..." << std::endl;
-    keygen.genRotKeysForBootstrap(log_slots);
+    // std::cout << "Generate rotation keys used in the bootstrap process ..." << std::endl;
+    // keygen.genRotKeysForBootstrap(log_slots);
     
     long key_time = key_timer.end_and_get();
-    cout << key_time << " ms"<< endl;
-    cout << "Done." << endl;
+    file << key_time << std::endl;
+    file.close();
+
 
 
     vector<Ciphertext> input;
     vector<vector<int>> encoding_vector(ell,vector<int>(1<<log_slots, 0));
 
     cout << "Client data preprocessing begins" << endl;
+
+    file.open("/home/jimineum/ckks_psi/project/client_dataprocessing.txt", ios::app);
+
+    if(!file.is_open()){
+        std::cout << "Cannot open the file" << std::endl;
+        exit(1);
+    }
+
     key_timer.start();
 
     for (int bin_index = 0; bin_index < 1<<log_slots; bin_index++) {
@@ -130,13 +150,14 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
         input.push_back(ctxt);
     } 
     
+    key_time = key_timer.end_and_get();
+    file << key_time << std::endl;
+    file.close();
+
     cout << "Saving client ciphertexts ...";
     save_ciphertext(input);
     cout << "done" << endl;
 
-    key_time = key_timer.end_and_get();
-    cout << key_time << " ms"<< endl;
-    cout << "Done." << endl;
 
     // for dubugging purposes ONLY.
     string sk_string = "secretkey.bin";

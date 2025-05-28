@@ -76,31 +76,52 @@ inline std::string presetNamer(const HEaaN::ParameterPreset preset) {
 
 int main(void) {
     std::cout << "main project" << std::endl;
-    Client client("FGb"); // FVb
+    Client client("SS7"); // SS7
     std::cout << "Parameter : " << presetNamer(client.preset) << std::endl;
     std::cout << getLogFullSlots(client.context) << std::endl;
+
+    // for our deterministic hashing(assignment) scheme, effective_bitLength > 15
+    // 2^15 slots in FGb parameters
+    int effective_bitLength = 19; 
+    // large hamming weight parameters causes depletion due to extensive multiplication.
+
+    int hw = 7;
+
+    // ======
+
+    int client_set = 4096;
+    int server_set = 1<<20;
+    int N = 1 << getLogFullSlots(client.context);
+
+    int num_bins = 1, num_balls = 1;
+    // int gamma = ceil(client_set *1.27 / N);
+    int gamma = 1;
+
+    num_bins = N*gamma;
+    num_balls = 3*server_set;
 
     // mu = ceil((float)num_balls/num_bins + 2 * sqrt((float)num_balls*log2(num_bins)/num_bins));
     // server_bin_size used for PEPSI
 
-    int server_bin_size = 10;
-    // for our deterministic hashing(assignment) scheme, effective_bitLength > 15
-    // 2^15 slots in FGb parameters
-    int effective_bitLength = 16; 
-    // large hamming weight parameters causes depletion due to extensive multiplication.
-    int hw = 3;
+    // int server_bin_size = ceil((float)num_balls/num_bins + 2 * sqrt((float)num_balls*log2(num_bins)/num_bins));
+    int server_bin_size = 526;
+
     Params params(server_bin_size, effective_bitLength, hw);
     
-    auto [context_string, keypack_string, data_stream, sk_string] = client.client_preprocessing(params);
-    
-    std::cout << context_string << ", " << keypack_string << std::endl;
+    for(int i = 0; i < 2; i++){
+        std::cout << std::endl << "=========== " << i+1 << " times ===========" << std::endl;
+ 
+        auto [context_string, keypack_string, data_stream, sk_string] = client.client_preprocessing(params);
+        
+        std::cout << context_string << ", " << keypack_string << std::endl;
 
-    Server server(context_string, keypack_string, std::move(data_stream), sk_string);
-    // std::stringstream final_stream = std::move(server.server_computation(params));
-    // std::stringstream final_stream = std::move(server.serverMultipleLabelComp(params));
-    std::stringstream final_stream = std::move(server.server_computation_time(params));
+        Server server(context_string, keypack_string, std::move(data_stream), sk_string);
+        // std::stringstream final_stream = std::move(server.server_computation(params));
+        // std::stringstream final_stream = std::move(server.serverMultipleLabelComp(params));
+        std::stringstream final_stream = std::move(server.server_computation_time(params));
 
-    client.load_decrypt(final_stream);
+        client.load_decrypt(final_stream);
+    }
 
     return 0;
 }

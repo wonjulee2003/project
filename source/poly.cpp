@@ -2,6 +2,8 @@
 #include <vector>
 #include <cmath>
 #include <time.h>
+#include <fstream>
+#include <string>
 
 #include "HEaaN/HEaaN.hpp"
 // #include "HEaaN-math/HEaaN-math.hpp"
@@ -214,6 +216,19 @@ int main(void){
 
     key_time = key_timer.end_and_get();
     cout << key_time << " ms"<< endl;
+
+    std::ofstream file;
+    file.open("/home/jimineum/ckks_psi/project/source/result.txt");
+
+    if(!file.is_open()){
+        std::cout << "Cannot open the file" << std::endl;
+        return 1;
+    }
+
+    long time = 1234;
+    file << 1234 << std::endl;
+
+    file.close();
 
     return 0;
 }

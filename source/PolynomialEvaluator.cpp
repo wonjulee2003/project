@@ -472,7 +472,7 @@ Ciphertext recursiveGS( const HomEvaluator &eval,
 
     Ciphertext res(eval.getContext());
     eval.mult(quotient, cheby_g[power], quotient);
-    eval.add(rest, quotient, res);         
+    eval.add(rest, quotient, res);
 
     return res;                                            
 }

@@ -10,7 +10,8 @@ int Server::server_hash(int mu, int bin_index, int bitLength){
 
 // constructor
 Server::Server(const string &string1, string &string2, stringstream &&source_stream, string &string4)
-    : context(makeContextFromFile(string1)), pack(context, string2), evaluator(context, pack), encryptor(context), btp(evaluator),
+    : // context(makeContextFromFile(string1)), pack(context, string2), evaluator(context, pack), encryptor(context), btp(evaluator),
+      context(makeContextFromFile(string1)), pack(context, string2), evaluator(context, pack), encryptor(context),
     // sk passed over for debugging purposes
     sk(context, string4),
     context_string{string1}, keypack_string{string2}, data_stream{source_stream.str()}, sk_string{string4}
@@ -233,14 +234,22 @@ stringstream Server::server_computation_time(Params &params){
 
     int server_bin_size = params.server_bin_size, effective_bitLength = params.effective_bitLength, 
     ell = params.ell, hw = params.hw;
-    
-    const auto log_slots = getLogFullSlots(context);
 
-    Timer key_timer;
+    const auto log_slots = getLogFullSlots(context);
 
     vector<Ciphertext> inputs;
 
     std::cout << "Loading Client ctxt(communication cost)" << std::endl;
+
+    std::ofstream file;
+    file.open("/home/jimineum/ckks_psi/project/load_ctxt.txt", ios::app);
+
+    if(!file.is_open()){
+        std::cout << "Cannot open the file" << std::endl;
+        exit(1);
+    }
+
+    Timer key_timer;
     key_timer.start();
     
     //loading ciphertexts
@@ -250,8 +259,9 @@ stringstream Server::server_computation_time(Params &params){
         inputs.push_back(ct_temp);
     }
     long key_time = key_timer.end_and_get();
-    cout << key_time << " ms"<< endl;
-    cout << "Done." << endl;
+    file << key_time << std::endl;
+    file.close();
+
 
 
     data_stream.str("");
@@ -287,13 +297,21 @@ stringstream Server::server_computation_time(Params &params){
 
     vector<Ciphertext> intersection_cheby;
 
-    const std::vector<Real> chebyCoefDeg3 = ChebyCoefTable::ChebyCoefDeg[3];
+    const std::vector<Real> chebyCoefDeg = ChebyCoefTable::ChebyCoefDeg[7];
     u64 num_baby_step;
 
-    if(chebyCoefDeg3.size() <= 3) num_baby_step = chebyCoefDeg3.size();
-    else num_baby_step = pow(2,floor(ceil(log2(chebyCoefDeg3.size()))/2));
+    if(chebyCoefDeg.size() <= 3) num_baby_step = chebyCoefDeg.size();
+    else num_baby_step = pow(2,floor(ceil(log2(chebyCoefDeg.size()))/2));
 
     std::cout << "Server data preprocessing begins" << std::endl;
+
+    file.open("/home/jimineum/ckks_psi/project/server_dataprocessing.txt", ios::app);
+
+    if(!file.is_open()){
+        std::cout << "Cannot open the file" << std::endl;
+        exit(1);
+    }
+
     key_timer.start();
 
     vector<vector<vector<int>>> operand_vec(server_bin_size, 
@@ -310,11 +328,20 @@ stringstream Server::server_computation_time(Params &params){
     }
 
     key_time = key_timer.end_and_get();
-    cout << key_time << " ms"<< endl;
-    cout << "Done." << endl;
+    file << key_time << std::endl;
+    file.close();
+
 
 
     std::cout << "Server Computation begins" << std::endl;
+
+    file.open("/home/jimineum/ckks_psi/project/server_comp.txt", ios::app);
+
+    if(!file.is_open()){
+        std::cout << "Cannot open the file" << std::endl;
+        exit(1);
+    }
+
     key_timer.start();
 
     // beginning of main loop
@@ -360,14 +387,17 @@ stringstream Server::server_computation_time(Params &params){
         // output : ciphertext ctxt (or other ciphertext storage)
 
         Ciphertext ctxt_test(context);
-        ChebyshevCoefficients chebyshev_coef_deg_3(chebyCoefDeg3, num_baby_step);
+        ChebyshevCoefficients chebyshev_coef_deg(chebyCoefDeg, num_baby_step);
 
         if (i==0){
             std::cout << "Ciphertext - initial level " << ctxt.getLevel() << std::endl;
         }
         
+        // evaluator.add(evaluateChebyshev(evaluator, ctxt, 
+        //     chebyshev_coef_deg, 1.0/720), 0, ctxt_test);
+
         evaluator.add(evaluateChebyshev(evaluator, ctxt, 
-            chebyshev_coef_deg_3, 1.0/6), 0, ctxt_test);
+            chebyshev_coef_deg, 1.0/5040), 0, ctxt_test);
 
         if (i==0){
             std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
@@ -440,8 +470,9 @@ stringstream Server::server_computation_time(Params &params){
     }
 
     key_time = key_timer.end_and_get();
-    cout << key_time << " ms"<< endl;
-    cout << "Done." << endl;
+    file << key_time << std::endl;
+    file.close();
+
 
     // compute the size of intersection
     // std::cout << "Compute intersection size ... ";
@@ -718,7 +749,7 @@ stringstream Server::serverMultipleLabelComp(Params &params){
     evaluator.sub(temp2, temp, temp); // E(X^2) - E(X)^2
 
     // Boostrapping
-    btp.bootstrap(temp, temp, false);    
+    // btp.bootstrap(temp, temp, false);    
     std::cout << "level after bootstrapping : " << temp.getLevel() << std::endl;
 
     std::cout << "Message before computing sqrt" << std::endl;

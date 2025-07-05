@@ -102,6 +102,15 @@ long double Timer::end_and_get(){
     return elapsed.count();
 }
 
+void Timer_micro::start(){
+    start_ = chrono::steady_clock::now();
+}
+
+long double Timer_micro::end_and_get(){
+    end_ = chrono::steady_clock::now();
+    auto elapsed = chrono::duration_cast<std::chrono::microseconds>(end_ - start_);
+    return elapsed.count();
+}
 
 Params::Params(int server_bin_size, int effective_bitLength, int hw)
     : server_bin_size{server_bin_size}, effective_bitLength{effective_bitLength}, ell{hw}, hw{hw}

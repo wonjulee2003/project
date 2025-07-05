@@ -1,8 +1,9 @@
-#include <iostream>
-#include <random>
-#include <vector>
-#include <tuple>
-#include <sstream>
+// #include <iostream>
+// #include <random>
+// #include <vector>
+// #include <tuple>
+// #include <sstream>
+#include <getopt.h>
 
 #include "HEaaN/HEaaN.hpp"
 // #include "HEaaN-math/HEaaN-math.hpp"
@@ -74,18 +75,20 @@ inline std::string presetNamer(const HEaaN::ParameterPreset preset) {
 // Decrypt & Decode
 
 
-int main(void) {
+int main(int argc, char* argv[]) {
     std::cout << "main project" << std::endl;
     Client client("SS7"); // SS7
     std::cout << "Parameter : " << presetNamer(client.preset) << std::endl;
     std::cout << getLogFullSlots(client.context) << std::endl;
+
+    omp_set_num_threads(32);
 
     // for our deterministic hashing(assignment) scheme, effective_bitLength > 15
     // 2^15 slots in FGb parameters
     int effective_bitLength = 19; 
     // large hamming weight parameters causes depletion due to extensive multiplication.
 
-    int hw = 7;
+    int hw = 8;
 
     // ======
 
@@ -105,12 +108,16 @@ int main(void) {
 
     // int server_bin_size = ceil((float)num_balls/num_bins + 2 * sqrt((float)num_balls*log2(num_bins)/num_bins));
     int server_bin_size = 526;
+    // int server_bin_size = 6710;
+    // int server_bin_size = 100565;
+    // int server_bin_size = 1;
 
     Params params(server_bin_size, effective_bitLength, hw);
     
-    for(int i = 0; i < 2; i++){
-        std::cout << std::endl << "=========== " << i+1 << " times ===========" << std::endl;
- 
+
+        // std::cout << std::endl << "=========== " << i+1 << " times ===========" << std::endl;
+        std::cout << "server bin size : " << server_bin_size << std::endl;
+
         auto [context_string, keypack_string, data_stream, sk_string] = client.client_preprocessing(params);
         
         std::cout << context_string << ", " << keypack_string << std::endl;
@@ -119,9 +126,10 @@ int main(void) {
         // std::stringstream final_stream = std::move(server.server_computation(params));
         // std::stringstream final_stream = std::move(server.serverMultipleLabelComp(params));
         std::stringstream final_stream = std::move(server.server_computation_time(params));
+        // std::stringstream final_stream = std::move(server.server_computation_time0(params));
 
         client.load_decrypt(final_stream);
-    }
+
 
     return 0;
 }

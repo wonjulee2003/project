@@ -1,17 +1,22 @@
 #ifndef __CLIENT__H
 #define __CLIENT__H
 
-#include <iostream>
-#include <random>
-#include <vector>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
+// #include <iostream>
+// #include <fstream>
+// #include <sstream>
+
+// #include <random>
+// #include <vector>
+// #include <iomanip>
+
+// #include <unordered_map>
+// #include <stdexcept>
+// #include <tuple>
+// #include <string>
+
 #include <unordered_map>
 #include <stdexcept>
 #include <tuple>
-#include <fstream>
-#include <string>
 
 #include "HEaaN/HEaaN.hpp"
 #include "utils.hpp"

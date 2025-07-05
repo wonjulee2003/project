@@ -187,48 +187,124 @@ int main(void){
 
     // bootstrapping test
     
-    key_timer.start();
 
-    std::cout << std::endl << "BootStrapping test ..." << std::endl;
+    // std::cout << std::endl << "BootStrapping test ..." << std::endl;
 
-    for (size_t i = 0; i < num_slots; ++i) {
-        msg[i].real(0.0);
-        msg[i].imag(0.0);
-    }
+    // for (size_t i = 0; i < num_slots; ++i) {
+    //     msg[i].real(0.0);
+    //     msg[i].imag(0.0);
+    // }
 
-    for (size_t i = 0; i < 10; ++i) {
-        msg[i].real(1 - 0.1*i);
-        msg[i].imag(0.0);
-    }
+    // for (size_t i = 0; i < 10; ++i) {
+    //     msg[i].real(1 - 0.1*i);
+    //     msg[i].imag(0.0);
+    // }
 
-    std::cout << "message before sorting" << std::endl;
-    printMessage(msg);
+    // std::cout << "message before sorting" << std::endl;
+    // printMessage(msg);
 
-    enc.encrypt(msg, pack, ctxt);
+    // enc.encrypt(msg, pack, ctxt);
+
+    // key_timer.start();
     // unitSort(eval, btp, ctxt, ctxt_out, num_slots, true, false);
 
-    std::cout << "Decrypt ... ";
-    dec.decrypt(ctxt_out, sk, dmsg);
-    std::cout << "done" << std::endl;
+    // key_time = key_timer.end_and_get();
+    // std::cout << "running time for sorting" << std::endl;
+    // std::cout << key_time << " ms"<< std::endl << std::endl;
 
-    std::cout << std::endl << "Result vector : " << std::endl;
-    printMessage(dmsg);
+    // std::cout << "Decrypt ... ";
+    // dec.decrypt(ctxt_out, sk, dmsg);
+    // std::cout << "done" << std::endl;
 
-    key_time = key_timer.end_and_get();
-    cout << key_time << " ms"<< endl;
+    // std::cout << std::endl << "Result vector : " << std::endl;
+    // printMessage(dmsg);
 
-    std::ofstream file;
-    file.open("/home/jimineum/ckks_psi/project/source/result.txt");
+    Ciphertext test1(context), test2(context);
 
-    if(!file.is_open()){
-        std::cout << "Cannot open the file" << std::endl;
-        return 1;
+    std::vector<Message> addition(100);
+
+    for(int i = 1; i <= 100; i++){
+        fillReal(msg,i);
+        addition[i-1] = msg;
     }
 
-    long time = 1234;
-    file << 1234 << std::endl;
+    std::vector<Plaintext> ptadd;
+    EnDecoder endecoder(context);
 
-    file.close();
+    for(int i = 0; i < 100; i++){
+        // eval.add(endecoder.encode(addition1[i], test1.getLevel(), test1.getRescaleCounter())
+        //         , 0, ptadd[i]);
+
+        ptadd.push_back(endecoder.encode(addition[i], 
+                                        test1.getLevel(), test1.getRescaleCounter()));
+        
+    }
+
+    // test for adding
+
+    std::cout << "Add ctxt and const" << std::endl;
+    key_timer.start();
+    for(int i = 1; i <= 100; i++){
+        eval.add(test1, i, test1);
+    }
+    key_time = key_timer.end_and_get();
+    std::cout << key_time << " ms" << std::endl << std::endl;
+
+    
+    std::cout << "Add ctxt and message" << std::endl;
+    key_timer.start();
+    for(int i = 0; i < 100; i++){
+        eval.add(test1, addition[i], test1);
+    }
+    key_time = key_timer.end_and_get();
+    std::cout << key_time << " ms" << std::endl << std::endl;
+
+
+    std::cout << "Add ctxt and ptxt" << std::endl;
+    key_timer.start();
+    for(int i = 0; i < 100; i++){
+        eval.add(test1, ptadd[i], test1);
+    }
+    key_time = key_timer.end_and_get();
+    std::cout << key_time << " ms" << std::endl << std::endl;
+
+
+    std::cout << "Add ctxt and ctxt" << std::endl;
+    key_timer.start();
+    for(int i = 0; i < 100; i++){
+        eval.add(test1, test2, test1);
+    }
+    key_time = key_timer.end_and_get();
+    std::cout << key_time << " ms" << std::endl << std::endl;
+
+    // test for multiplying
+
+    // std::cout << "Mult ctxt and const" << std::endl;
+    // key_timer.start();
+    // for(int i = 1; i <= 100; i++){
+    //     eval.mult(test1, i, test2);
+    // }
+    // key_time = key_timer.end_and_get();
+    // std::cout << key_time << " ms" << std::endl << std::endl;
+
+    
+    // std::cout << "Mult ctxt and message" << std::endl;
+    // key_timer.start();
+    // for(int i = 0; i < 100; i++){
+    //     eval.mult(test1, addition[i], test2);
+    // }
+    // key_time = key_timer.end_and_get();
+    // std::cout << key_time << " ms" << std::endl << std::endl;
+
+
+    // std::cout << "Mult ctxt and ptxt" << std::endl;
+    // key_timer.start();
+    // for(int i = 0; i < 100; i++){
+    //     eval.mult(test1, ptadd[i], test2);
+    // }
+    // key_time = key_timer.end_and_get();
+    // std::cout << key_time << " ms" << std::endl << std::endl;
+
 
     return 0;
 }

@@ -8,6 +8,11 @@
 #include <random>
 #include <optional>
 #include <chrono>
+#include "omp.h"
+
+#include <fstream>
+#include <sstream>
+#include <iomanip>
 
 #include "HEaaN/HEaaN.hpp"
 
@@ -25,6 +30,14 @@ void fillReal(HEaaN::Message &msg, double val);
 
 // For computation evaluation
 class Timer {
+public:
+    std::chrono::steady_clock::time_point start_;
+    std::chrono::steady_clock::time_point end_;
+    void start();
+    long double end_and_get();
+};
+
+class Timer_micro {
 public:
     std::chrono::steady_clock::time_point start_;
     std::chrono::steady_clock::time_point end_;

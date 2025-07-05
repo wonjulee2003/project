@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <stdlib.h>
 #include <time.h>
@@ -21,9 +22,15 @@ rehash 몇 번을 하면 좋을지 parameter 설정해야함.
 */
 
 lld MakeRandomVal(int lower, int upper);
+void assignVal(int *arr_ptr, int size);
+void printArr(int *arr_ptr, int size);
 lld HashFunc(lld input, lld coef, lld mod, lld div);
 int PermBasedHashing(int input, int leftBitSize, int rightBitSize, lld coef);
-void CuckooHashing(int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_ptr, int elementBitSize, int binBitSize, const int MAXLOOP, int size);
+void CuckooHashing(int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_ptr, int elementBitSize, int binBitSize, const int MAXLOOP, int size, int binSize);
+void CuckooHashingWithFixedCoef(std::vector<lld> coefs, int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_ptr, 
+                    int elementBitSize, int binBitSize, const int MAXLOOP, int size, 
+                    int binSize);
+
 int PerfectMapping(int input, int bitLength, int hammingWeight);
 int comb(int n, int r);
 
@@ -102,54 +109,124 @@ int main(void){
 
     // =========================================
     
+    // 2. To check cuckoo hahsing works well. (random arr and random coefs)
 
-    int arr[12] = {};
-    int bin[16] = {};
+    // 12 / 16
+    // int inputSize = 4096;
+    // int binSize = 8192;
+    // int iterNum = 1<<30;
+
+    // int arr[inputSize];
+    // int bin[binSize];
+
+    // for(int i = 0; i < binSize; i++){
+    //     bin[i] = 0;
+    // }
+
+    // std::unordered_map<int,int> elt_idx;
+
+    // int elementBitSize = 32, binBitSize = (int)log2(binSize);
+    // const int MAXLOOP = 35; // ln(arrSize) / ln(1.27) = 11
+    // int size = sizeof(arr)/sizeof(int);
+
+    // std::cout << "Start" << std::endl << std::endl;
+
+    // int j;
+    // for(j = 1; j <= iterNum; j++){ 
+    //     // j = 26 일 때 rehash 가 필요한 경우 발생
+    //     // lld temp = 2 * MakeRandomVal(0, (1 << (elementBitSize - 1)) - 1) + 1 로 할 경우
+
+    //     std::cout << j << "th execution" << std::endl << std::endl;
+    //     for(int i = 0; i < inputSize; i++){
+    //         int temp = MakeRandomVal(1,1<<31-1);
+    //         arr[i] = temp;
+    //         // std::cout << temp << std::endl;
+    //     }
+
+    //     CuckooHashing(arr, elt_idx, bin, elementBitSize, binBitSize, MAXLOOP, size, binSize);
+        
+    //     if(test){
+    //         break;
+    //     }
+
+    //     for(int i = 0; i < inputSize; i++){
+    //         arr[i] = 0;
+    //     }
+
+    //     for(int i = 0; i < binSize; i++){
+    //         bin[i] = 0;
+    //     }
+
+    //     elt_idx.clear();
+
+    //     // std::cout << "===================" << std::endl << std::endl;
+    // }
+
+    // std::cout << j-1 << " times succeed !" << std::endl;
+    // std::cout << "Rehash count : " << rehashCnt << std::endl;
+
+    // ============================================
+
+    // 3. To check rehash occurs for fixed coefs. (random arr and random coefs)
+
+    int inputSize = 1024; // 4096, 8192
+    int binSize = 2048;
+    int iterNum = 1<<20;
+
+    int arr[inputSize];
+    int bin[binSize];
+
+    for(int i = 0; i < binSize; i++){
+        bin[i] = 0;
+    }
+
     std::unordered_map<int,int> elt_idx;
 
-    int elementBitSize = 32, binBitSize = 4;
-    const int MAXLOOP = 11; // ln(arrSize) / ln(1.27)
-    int size = sizeof(arr)/sizeof(int);
+    int elementBitSize = 32, binBitSize = (int)log2(binSize);
+    const int MAXLOOP = 35; // ln(arrSize) / ln(1.27) = 11
 
-    std::cout << "Start" << std::endl << std::endl;
+    std::vector<lld> coefs;
+    while(coefs.size() != 3){
+        lld temp = 2 * MakeRandomVal(0, (1 << (elementBitSize - 1)) - 1) + 1;
+        // lld temp = 2 * MakeRandomVal(0, 1 << (elementBitSize - 1) - 1) + 1;
+
+        if(find(coefs.begin(), coefs.end(), temp) == coefs.end()){
+            coefs.push_back(temp);
+        }
+    }
+
+    std::cout << "Start" << std::endl;
+    std::cout << "Test " << iterNum << " times!" << std::endl << std::endl;
 
     int j;
-    for(j = 1; j <= 10000; j++){ 
+    for(j = 1; j <= iterNum; j++){ 
         // j = 26 일 때 rehash 가 필요한 경우 발생
         // lld temp = 2 * MakeRandomVal(0, (1 << (elementBitSize - 1)) - 1) + 1 로 할 경우
 
         std::cout << j << "th execution" << std::endl << std::endl;
-        for(int i = 0; i < 12; i++){
-            int temp = MakeRandomVal(1,1<<31-1);
-            arr[i] = temp;
-            std::cout << temp << std::endl;
-        }
-
-        CuckooHashing(arr, elt_idx, bin, elementBitSize, binBitSize, MAXLOOP, size);
+        assignVal(arr, inputSize);
+        // printArr(arr, inputSize);
+        CuckooHashingWithFixedCoef(coefs, arr, elt_idx, bin, elementBitSize, binBitSize, MAXLOOP, inputSize, binSize);
         
         if(test){
             break;
         }
 
-        for(int i = 0; i < 12; i++){
+        for(int i = 0; i < inputSize; i++){
             arr[i] = 0;
         }
 
-        for(int i = 0; i < 16; i++){
+        for(int i = 0; i < binSize; i++){
             bin[i] = 0;
         }
 
         elt_idx.clear();
 
-        std::cout << "===================" << std::endl << std::endl;
+        // std::cout << "===================" << std::endl << std::endl;
     }
 
     std::cout << j-1 << " times succeed !" << std::endl;
-    std::cout << "Rehash count : " << rehashCnt << std::endl;
-
-    // ============================================
-
-    
+    printArr(arr, inputSize);
 
     // srand(time(NULL));
 
@@ -166,6 +243,30 @@ lld MakeRandomVal(int lower, int upper){
     std::uniform_int_distribution<lld> dis(lower,upper);
 
     return dis(gen);
+}
+
+void assignVal(int *arr_ptr, int size){
+    std::unordered_set<int> cnt;
+
+    for(int i = 0; i < size; i++){
+        while(true){
+            int temp = MakeRandomVal(1,1<<31-1);
+
+            if(cnt.find(temp) == cnt.end()){
+                arr_ptr[i] = temp;
+                cnt.insert(temp);
+                break;
+            }
+        }        
+    }
+
+}
+
+void printArr(int *arr_ptr, int size){
+    for(int i = 0; i  < size; i++){
+        std::cout << arr_ptr[i] << std::endl;
+    }
+    std::cout << std::endl;
 }
 
 lld HashFunc(lld input, lld coef, lld mod, lld div){
@@ -190,7 +291,9 @@ int PermBasedHashing(int input, int leftBitSize, int rightBitSize, lld coef){
     return leftval ^ HashFunc(rightval, coef, mod, div);
 }
 
-void CuckooHashing(int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_ptr, int elementBitSize, int binBitSize, const int MAXLOOP, int size){
+void CuckooHashing( int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_ptr, 
+                    int elementBitSize, int binBitSize, const int MAXLOOP, int size, 
+                    int binSize){
     // Using 3 hash functions
 
     // Assume that the binSize is a power of 2.
@@ -258,8 +361,8 @@ void CuckooHashing(int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_
         if(i == size) break;
         else{
             std::cout << "We need rehash!" << std::endl;
-
-            for(int i = 0; i < 16; i++){
+            
+            for(int i = 0; i < binSize; i++){
                 bin_ptr[i] = 0;
             }
 
@@ -274,6 +377,64 @@ void CuckooHashing(int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_
         }
     }
     
+    return ;
+}
+
+void CuckooHashingWithFixedCoef(std::vector<lld> coefs, int *arr_ptr, std::unordered_map<int,int> &idx_ptr, int *bin_ptr, 
+                    int elementBitSize, int binBitSize, const int MAXLOOP, int size, 
+                    int binSize){
+    // Using 3 hash functions
+
+    // Assume that the binSize is a power of 2.
+    // and also assume that elements of input are not 0.
+    
+    lld mod = (lld)1 << elementBitSize;
+    lld div = (lld)1 << (elementBitSize - binBitSize);
+
+    int i = 0;
+
+    while(i < size){
+        int element = arr_ptr[i];
+        int idx = idx_ptr[element];
+        bool flag = true;
+
+        // insert 
+
+        for(int j = 0; j < MAXLOOP; j++){
+            lld coef = coefs[idx];
+            lld hash_val = HashFunc(element, coef, mod, div);
+
+            // std::cout << element << " " << hash_val << std::endl;
+
+            if(bin_ptr[hash_val] == 0){
+                bin_ptr[hash_val] = element;
+                idx_ptr[element] = idx;
+                i++;
+                flag = false;
+
+                break;
+            }
+            else{
+                int temp_val = bin_ptr[hash_val];
+                int temp_idx = idx_ptr[temp_val];
+                
+                bin_ptr[hash_val] = element;
+                idx_ptr[element] = idx;
+
+                element = temp_val;
+                idx = (temp_idx + 1) % 3;
+            }
+        }
+
+        // if flag = true, then we require rehash
+        if(flag) break; 
+
+        // std::cout << "Insert one element" << std::endl;
+
+    }
+
+    if(i < size) test = true;
+            
     return ;
 }
 

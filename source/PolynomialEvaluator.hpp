@@ -119,13 +119,9 @@ HEaaN::Ciphertext evaluateChebyshev( const HEaaN::HomEvaluator &eval,
                                      ChebyshevCoefficients &cheby_coeffs,
                                      const HEaaN::Real multiplier);
 
+HEaaN::Ciphertext multiplyLikeTree( const HEaaN::HomEvaluator &eval, 
+                             std::vector<HEaaN::Ciphertext> &poly,
+                             const HEaaN::u64 start, const HEaaN::u64 end);
+
 #endif
-
-
-
-
-
-
-
-
 

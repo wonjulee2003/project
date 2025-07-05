@@ -133,19 +133,23 @@ Ciphertext evaluateBabyStepWithoutRescale(
     auto ctxt_b = cheby_b.begin() + static_cast<int>(bs_length) - 1;
 
     eval.multWithoutRescale(*ctxt_b, multiplier * *coeff, res);
+    // res.setRescaleCounter(0);
+    // eval.rescale(res);
     coeff--;
     ctxt_b--;
     while (ctxt_b != cheby_b.begin()) {
         const Real cnst = multiplier * *coeff;
         if (std::abs(cnst) > 1.0e-8) {
             eval.multWithoutRescale(*ctxt_b, cnst, tmp);
+            // tmp.setRescaleCounter(0);
+            // eval.rescale(tmp);
             eval.add(res, tmp, res);
         }
         coeff--;
         ctxt_b--;
     }
     eval.add(res, multiplier * *coeff, res);
-
+    // res.setRescaleCounter(1);
     return res;
 }
 
@@ -430,9 +434,8 @@ Ciphertext recursiveGS( const HomEvaluator &eval,
     // std::cout << start << " " << power << std::endl;                                   
 
     u64 num_bs = cheby_b.size();  
-
     if(power < 0){
-        Ciphertext res = babyStepWithReducedCoeffs(eval, coeffs, cheby_b, start,
+        Ciphertext res = babyStepWithoutReducedCoeffs(eval, coeffs, cheby_b, start,
                                         num_bs, multiplier);
         return res;
     }
@@ -443,8 +446,8 @@ Ciphertext recursiveGS( const HomEvaluator &eval,
     
     // half front
     if(end - start <= num_bs){
-        std::cout << end - start << " here" << std::endl;
-        Ciphertext res = babyStepWithReducedCoeffs(eval, coeffs, cheby_b, start,
+        // std::cout << end - start << " here" << std::endl;
+        Ciphertext res = babyStepWithoutReducedCoeffs(eval, coeffs, cheby_b, start,
                                         end-start, multiplier);
         return res;
     }
@@ -504,11 +507,11 @@ Ciphertext evaluateChebyshev( const HomEvaluator &eval,
     Ciphertext res(eval.getContext());
 
     if (num_gs == 1) {
-        res = babyStepWithReducedCoeffs(eval, cheby_coeffs.coeffs, cheby_b, 0,
-                                        cheby_coeffs.coeffs.size(), multiplier);
+        // res = babyStepWithReducedCoeffs(eval, cheby_coeffs.coeffs, cheby_b, 0,
+        //                                 cheby_coeffs.coeffs.size(), multiplier);
 
-        // res = babyStepWithoutReducedCoeffs(eval, cheby_coeffs.coeffs, cheby_b, 0,
-        //                                 cheby_coeffs.coeffs.size(), multiplier);                                        
+        res = babyStepWithoutReducedCoeffs(eval, cheby_coeffs.coeffs, cheby_b, 0,
+                                        cheby_coeffs.coeffs.size(), multiplier);                                        
     } else {
         // Generate Chebyshev polynomials for giant-step
         std::vector<Ciphertext> cheby_g =
@@ -523,5 +526,27 @@ Ciphertext evaluateChebyshev( const HomEvaluator &eval,
                                 power-1, multiplier);
     }
 
+    return res;
+}
+
+Ciphertext multiplyLikeTree( const HomEvaluator &eval, 
+                             std::vector<Ciphertext> &poly,
+                             const u64 start, const u64 end) {
+
+    if(end == start) return poly[end];
+    else if(end - start == 2){
+        Ciphertext res(eval.getContext());
+        eval.mult(poly[start], poly[end], res);
+        return res;
+    }
+
+    u64 mid = (start + end)/2;
+
+    Ciphertext left(eval.getContext()),right(eval.getContext());
+    left = multiplyLikeTree(eval, poly, start, mid);
+    right = multiplyLikeTree(eval, poly, mid+1, end);
+
+    Ciphertext res(eval.getContext());
+    eval.mult(left, right, res);
     return res;
 }

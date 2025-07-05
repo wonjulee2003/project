@@ -1,17 +1,14 @@
 #ifndef __SERVER__H
 #define __SERVER__H
 
-#include <iostream>
-#include <random>
-#include <vector>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <fstream>
+// #include <iostream>
+// #include <fstream>
+// #include <sstream>
 
-#include <unordered_set>
-
+// #include <random>
+// #include <vector>
+// #include <iomanip>
+// #include <string>
 
 #include "HEaaN/HEaaN.hpp"
 // #include "HEaaN-math/HEaaN-math.hpp"
@@ -25,6 +22,7 @@ public:
     HEaaN::KeyPack pack;
     HEaaN::HomEvaluator evaluator;
     HEaaN::Encryptor encryptor;
+    HEaaN::EnDecoder endecoder;
     // HEaaN::Bootstrapper btp;
     
     // for debugging
@@ -45,6 +43,7 @@ public:
 
     std::stringstream server_computation_time(Params &params);
     std::stringstream serverMultipleLabelComp(Params &params);
+    std::stringstream server_computation_time0(Params &params);
 };
 
 #endif

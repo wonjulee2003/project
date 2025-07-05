@@ -90,7 +90,7 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
 
     keygen.genEncKey();
     keygen.genMultKey();
-    // keygen.genConjKey();
+    // keygen.genConjKey(); // from here
     // keygen.genRotKeyBundle();
 
     // // generate bootstrap keys
@@ -99,9 +99,12 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
     // }
     
     // std::cout << "Generate rotation keys used in the bootstrap process ..." << std::endl;
-    // keygen.genRotKeysForBootstrap(log_slots);
+    // keygen.genRotKeysForBootstrap(log_slots); // to here
     
     long key_time = key_timer.end_and_get();
+    std::cout << key_time << " ms" << std::endl;
+
+
     file << key_time << std::endl;
     file.close();
 
@@ -151,6 +154,8 @@ tuple<string, string, stringstream, string> Client::client_preprocessing(Params 
     } 
     
     key_time = key_timer.end_and_get();
+    std::cout << key_time << " ms" << std::endl;
+
     file << key_time << std::endl;
     file.close();
 

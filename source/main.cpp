@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
     int effective_bitLength = 19; 
     // large hamming weight parameters causes depletion due to extensive multiplication.
 
-    int hw = 8;
+    int hw = 11;
 
     // ======
 
@@ -107,10 +107,10 @@ int main(int argc, char* argv[]) {
     // server_bin_size used for PEPSI
 
     // int server_bin_size = ceil((float)num_balls/num_bins + 2 * sqrt((float)num_balls*log2(num_bins)/num_bins));
-    int server_bin_size = 526;
+    // int server_bin_size = 526;
     // int server_bin_size = 6710;
     // int server_bin_size = 100565;
-    // int server_bin_size = 1;
+    int server_bin_size = 1;
 
     Params params(server_bin_size, effective_bitLength, hw);
     

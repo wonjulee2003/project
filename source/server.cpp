@@ -277,8 +277,8 @@ stringstream Server::server_computation_time(Params &params){
     // fillReal(label_msg, val);
 
     // find fac for Chebyshev
-    // Real fac = 1;
-    // for(Real i = 2; i <= hw; i++) fac *= i;
+    Real fac = 1;
+    for(Real i = 2; i <= hw; i++) fac *= i;
 
     Ciphertext init(context);
     // Message zero_msg(log_slots); 
@@ -343,7 +343,7 @@ stringstream Server::server_computation_time(Params &params){
             vector<vector<int>> operand_vec(ell,vector<int>(1<<log_slots, 0));
 
             // std::cout << "Server preprocessing" << std::endl;
-            // Timer key_timer1;
+            Timer key_timer1;
             // key_timer1.start();
 
             for (int bin_index = 0; bin_index < 1<<log_slots; bin_index++) {
@@ -419,33 +419,33 @@ stringstream Server::server_computation_time(Params &params){
             // output : ciphertext ctxt (or other ciphertext storage)
 
 
-            // std::cout << "Poly Eval" << std::endl;
-            // key_timer1.start();
+            std::cout << "Poly Eval" << std::endl;
+            key_timer1.start();
 
-            // Ciphertext ctxt_test(context);
-            // const std::vector<Real> chebyCoefDeg = ChebyCoefTable::ChebyCoefDeg[hw];
-            // u64 num_baby_step;
+            Ciphertext ctxt_test(context);
+            const std::vector<Real> chebyCoefDeg = ChebyCoefTable::ChebyCoefDeg[hw];
+            u64 num_baby_step;
 
-            // if(hw+1 <= 3) num_baby_step = hw+1;
-            // else num_baby_step = pow(2,floor(ceil(log2(hw+1))/2));
+            if(hw+1 <= 3) num_baby_step = hw+1;
+            else num_baby_step = pow(2,floor(ceil(log2(hw+1))/2));
 
-            // ChebyshevCoefficients chebyshev_coef_deg(chebyCoefDeg, num_baby_step);
+            ChebyshevCoefficients chebyshev_coef_deg(chebyCoefDeg, num_baby_step);
 
-            // // if (i==0){
-            // //     std::cout << "Ciphertext - initial level " << ctxt.getLevel() << std::endl;
-            // // }
+            // if (i==0){
+            //     std::cout << "Ciphertext - initial level " << ctxt.getLevel() << std::endl;
+            // }
             
-            // evaluator.add(evaluateChebyshev(evaluator, ctxt, 
-            //     chebyshev_coef_deg, 1.0/fac), 0, ctxt_test);
+            evaluator.add(evaluateChebyshev(evaluator, ctxt, 
+                chebyshev_coef_deg, 1.0/fac), 0, ctxt_test);
 
-            // // if (i==0){
-            // //     std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
-            // // }
+            // if (i==0){
+            //     std::cout << "Chebyshev Ciphertext - post-comp level " << ctxt_test.getLevel() << std::endl;
+            // }
 
-            // evaluator.add(ctxt_test,0,intersection_cheby[i]);
+            evaluator.add(ctxt_test,0,intersection_cheby[i]);
 
-            // key_time = key_timer1.end_and_get();
-            // std::cout << key_time << " ms" << std::endl << std::endl;
+            key_time = key_timer1.end_and_get();
+            std::cout << key_time << " ms" << std::endl << std::endl;
 
 
             // Alternative: Multiply like Tree
@@ -453,19 +453,19 @@ stringstream Server::server_computation_time(Params &params){
             // std::cout << "Poly Eval" << std::endl;
             // key_timer1.start();
 
-            vector<Ciphertext> subtraction(hw, init);
-            for(int i = 0; i < hw; i++){
-                Ciphertext temp(context);
-                evaluator.sub(ctxt, i, temp);
-                evaluator.mult(temp, 1.0/(hw-i), temp);
-                subtraction[i] = temp;
-            }
+            // vector<Ciphertext> subtraction(hw, init);
+            // for(int i = 0; i < hw; i++){
+            //     Ciphertext temp(context);
+            //     evaluator.sub(ctxt, i, temp);
+            //     evaluator.mult(temp, 1.0/(hw-i), temp);
+            //     subtraction[i] = temp;
+            // }
 
-            Ciphertext result(context);
-            result = multiplyLikeTree(evaluator, subtraction, 0, hw-1);
+            // Ciphertext result(context);
+            // result = multiplyLikeTree(evaluator, subtraction, 0, hw-1);
             
-            // divide by 1/hw!
-            evaluator.add(result, 0, intersection_cheby[i]);
+            // // divide by 1/hw!
+            // evaluator.add(result, 0, intersection_cheby[i]);
 
             // key_time = key_timer1.end_and_get();
             // std::cout << key_time << " ms" << std::endl << std::endl;
